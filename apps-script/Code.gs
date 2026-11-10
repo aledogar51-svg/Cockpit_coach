@@ -21,6 +21,7 @@ const FUSEAU = 'Europe/Paris';
 const MAX_DETAILS_PAR_SYNCHRO = 25;   // limite les appels Strava (quota : 100 lectures / 15 min)
 const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
 const RECORDS = { '1k': '1 km', '5k': '5 km', '10k': '10 km', '15k': '15 km', 'Half-Marathon': 'Semi-marathon', 'Marathon': 'Marathon' };
+const ORDRE_RECORDS = ['1 km', '5 km', '10 km', '15 km', 'Semi-marathon', 'Marathon'];
 
 // ---------------------------------------------------------------------
 // ÉTAPES D'INSTALLATION (à lancer une fois chacune, dans l'ordre)
@@ -83,29 +84,87 @@ function importerHistorique() {
   Logger.log('✅ Historique importé : ' + ajout + ' activités ajoutées (' + data.activities.length + ' au total).');
 }
 
-/** À lancer une fois : ajoute le cardio (FC moyenne/max) et l'effort aux activités des 4 derniers mois déjà importées. */
-function recupererCardio() {
+/**
+ * À lancer une fois (et chaque fois que tu veux tout remettre d'aplomb) :
+ *  - importe tout ton historique Strava (avec le cardio),
+ *  - retire les activités supprimées sur Strava,
+ *  - recalcule tous tes records à partir de tes sorties (par lots, pour respecter le quota Strava).
+ */
+function remiseANiveau() {
   const data = lireDonnees_();
   const token = jetonStrava_();
-  const index = new Map(data.activities.map(a => [String(a.id), a]));
-  const after = Math.floor(Date.now() / 1000) - 120 * 86400;
-  let page = 1, maj = 0;
-  while (page <= 5) {
-    const lot = strava_('/athlete/activities?per_page=100&page=' + page + '&after=' + after, token);
-    lot.forEach(a => {
-      const id = String(a.id), ancienne = index.get(id), m = versCockpit_(a, null);
-      const fusion = Object.assign({}, ancienne || {}, m);
-      if (ancienne && ancienne.race) fusion.race = true;
-      if (!ancienne || JSON.stringify(ancienne) !== JSON.stringify(fusion)) maj++;
-      index.set(id, fusion);
-    });
-    if (lot.length < 100) break;
+  const toutes = listerTout_(token);
+  const ids = new Set(toutes.map(a => String(a.id)));
+  const avant = data.activities.length;
+  const index = new Map(data.activities.filter(a => ids.has(String(a.id))).map(a => [String(a.id), a]));
+  const supprimees = avant - index.size;
+  toutes.forEach(a => {
+    const id = String(a.id), ancienne = index.get(id), fusion = Object.assign({}, ancienne || {}, versCockpit_(a, null));
+    if (ancienne && ancienne.race) fusion.race = true;
+    index.set(id, fusion);
+  });
+  data.activities = trier_([...index.values()]);
+  lancerRecalculRecords_(data);
+  traiterRecords_(data, token, 60);
+  ecrireDonnees_(data);
+  const reste = fileRecords_().length;
+  Logger.log('✅ ' + data.activities.length + ' activités (' + supprimees + ' supprimées retirées). ' + data.activities.filter(a => a.hr).length + ' avec cardio.');
+  Logger.log(reste ? '⏳ Records : encore ' + reste + ' sorties à analyser, la synchro auto s\'en charge (≈ ' + Math.ceil(reste / 20 / 4) + ' h).' : '🏅 Records recalculés : ' + JSON.stringify(data.records));
+}
+
+/** Ancien nom, conservé : fait la même chose que remiseANiveau. */
+function recupererCardio() { remiseANiveau(); }
+
+function listerTout_(token) {
+  let page = 1, out = [];
+  while (page <= 20) {
+    const lot = strava_('/athlete/activities?per_page=200&page=' + page, token);
+    out = out.concat(lot);
+    if (lot.length < 200) break;
     page++;
   }
-  data.activities = trier_([...index.values()]);
-  ecrireDonnees_(data);
-  const avecFc = data.activities.filter(a => a.hr).length;
-  Logger.log('✅ ' + maj + ' activités mises à jour. ' + avecFc + ' activités ont maintenant le cardio.');
+  return out;
+}
+
+// Records : on repart de zéro et on analyse le détail de chaque sortie course, par lots.
+function fileRecords_() { try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('RECORDS_A_FAIRE') || '[]'); } catch (e) { return []; } }
+function lancerRecalculRecords_(data) {
+  const runs = data.activities.filter(a => RUN_TYPES.indexOf(a.type) >= 0 && !(a.max_kmh > 30)).map(a => String(a.id));
+  data.records = [];
+  PropertiesService.getScriptProperties().setProperty('RECORDS_A_FAIRE', JSON.stringify(runs));
+  data.records_pending = runs.length;
+}
+function traiterRecords_(data, token, max) {
+  const file = fileRecords_();
+  if (!file.length) { delete data.records_pending; return 0; }
+  const index = new Map(data.activities.map(a => [String(a.id), a]));
+  let n = 0;
+  while (file.length && n < max) {
+    const id = file[0];
+    let d;
+    try { d = strava_('/activities/' + id, token); } catch (e) { if (/Quota/.test(e.message)) break; file.shift(); continue; }
+    file.shift(); n++;
+    const a = index.get(id);
+    if (a) Object.assign(a, versCockpit_(d, d), a.race ? { race: true } : {});
+    majRecords_(data, d);
+  }
+  PropertiesService.getScriptProperties().setProperty('RECORDS_A_FAIRE', JSON.stringify(file));
+  if (file.length) data.records_pending = file.length; else delete data.records_pending;
+  return n;
+}
+
+// Une fois par jour : retire les activités supprimées sur Strava (et relance les records si l'une d'elles en détenait un).
+function nettoyageQuotidien_(data, token) {
+  const props = PropertiesService.getScriptProperties();
+  const jour = Utilities.formatDate(new Date(), FUSEAU, 'yyyy-MM-dd');
+  if (props.getProperty('DERNIER_NETTOYAGE') === jour) return false;
+  const ids = new Set(listerTout_(token).map(a => String(a.id)));
+  props.setProperty('DERNIER_NETTOYAGE', jour);
+  const retirees = data.activities.filter(a => !ids.has(String(a.id))).map(a => String(a.id));
+  if (!retirees.length) return false;
+  data.activities = data.activities.filter(a => ids.has(String(a.id)));
+  if ((data.records || []).some(r => retirees.indexOf(String(r.activity_id)) >= 0)) lancerRecalculRecords_(data);
+  return true;
 }
 
 /** Optionnel : affiche la clé secrète si tu l'as perdue. */
@@ -116,7 +175,8 @@ function afficherCle() { Logger.log(PropertiesService.getScriptProperties().getP
 // ---------------------------------------------------------------------
 
 /** Récupère les activités récentes et met à jour le fichier si quelque chose a changé. */
-function synchroniser() {
+function synchroniser(options) {
+  const depuisAppli = !!(options && options.depuisAppli === true);
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(25000)) return { statut: 'déjà en cours' };
   try {
@@ -153,8 +213,11 @@ function synchroniser() {
     });
 
     data.activities = trier_([...index.values()]);
-    if (nouvelles || modifiees) ecrireDonnees_(data);
-    return { statut: 'ok', recues: recues.length, nouvelles: nouvelles, modifiees: modifiees };
+    let menage = false, analysees = 0;
+    try { menage = nettoyageQuotidien_(data, token); } catch (e) { console.warn(e); }
+    if (!depuisAppli) { try { analysees = traiterRecords_(data, token, 20); } catch (e) { console.warn(e); } }
+    if (nouvelles || modifiees || menage || analysees) ecrireDonnees_(data);
+    return { statut: 'ok', recues: recues.length, nouvelles: nouvelles, modifiees: modifiees, records_en_attente: fileRecords_().length };
   } finally {
     lock.releaseLock();
   }
@@ -166,7 +229,7 @@ function doGet(e) {
   const cle = PropertiesService.getScriptProperties().getProperty('CLE_SECRETE');
   if (!cle || p.key !== cle) return json_({ error: 'Clé incorrecte.' });
   let info = null;
-  if (p.sync === '1') { try { info = synchroniser(); } catch (err) { info = { statut: 'erreur', message: String(err.message || err) }; } }
+  if (p.sync === '1') { try { info = synchroniser({ depuisAppli: true }); } catch (err) { info = { statut: 'erreur', message: String(err.message || err) }; } }
   const data = lireDonnees_();
   data.sync = info;
   return json_(data);
@@ -219,6 +282,7 @@ function majRecords_(data, d) {
       if (rec) Object.assign(rec, nouveau); else data.records.push(nouveau);
     }
   });
+  data.records.sort((x, y) => ORDRE_RECORDS.indexOf(x.label) - ORDRE_RECORDS.indexOf(y.label));
 }
 
 function trier_(arr) { return arr.sort((a, b) => String(b.start).localeCompare(String(a.start))); }

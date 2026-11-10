@@ -40,7 +40,8 @@ Dans Drive, sur `cockpit-data.json` : *Partager → Copier le lien*. Le fichier 
 
 Ensuite, à chaque ouverture, l'appli récupère tes nouvelles activités Strava. ↻ force une synchro.
 
-**G. (Une fois) Récupérer le cardio de l'historique** : lancer `recupererCardio` dans le script. Cela remplit la courbe « EF à FC égale » du Cockpit.
+**G. (Une fois) Remise à niveau** : lancer `remiseANiveau` dans le script. Importe tout l'historique Strava avec le cardio, retire les activités supprimées et recalcule les records (par lots, en quelques heures si l'historique est long).
+Ensuite, chaque jour, le script retire tout seul les activités supprimées sur Strava.
 
 **Objectif de course** : ⚙ Réglages → *Mon objectif* (course, date, temps visé, sorties par semaine). Ces infos restent sur le téléphone.
 

@@ -641,6 +641,7 @@
       ${next}
       ${heroHtml}
       <h2 style="margin-top:6px">Records</h2>
+      ${DATA.records_pending ? `<p class="small" style="margin:-4px 0 0;color:var(--warn-ic)">⏳ Records en cours de recalcul : encore ${DATA.records_pending} sorties à analyser (mise à jour automatique dans les prochaines heures).</p>` : ''}
       <section class="grid2">${recHtml}</section>
       <h2 style="margin-top:6px">Toutes mes courses</h2>
       <section class="card" style="padding:0 16px">${races.map((a) => actRow(a, now)).join('') || '<p class="small">Marque une activité avec "race": true dans le fichier.</p>'}</section>
