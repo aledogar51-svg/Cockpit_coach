@@ -94,7 +94,7 @@
   dialog fieldset{border:none;padding:0;margin:18px 0 0;border-top:1px solid var(--line)}
   dialog legend{font-size:14px;font-weight:700;padding:14px 0 0}
   .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-  .phase{display:flex;gap:3px;margin-top:12px} .phase div{flex:1;height:6px;border-radius:3px;background:#2C3238} .phase div.on{background:var(--accent)} .phase div.done{background:#5C6B2A}
+  .phase{display:flex;gap:3px;margin-top:12px} .phase>div{flex:1;height:6px;border-radius:3px;background:#2C3238;overflow:hidden} .phase>div.done{background:#5C6B2A} .phase .f{height:100%;background:var(--accent);border-radius:3px}
   .phase-l{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));font-size:11px;color:var(--muted);margin-top:6px} .phase-l span:last-child{text-align:right} .phase-l .on{color:var(--ink);font-weight:600}
   .gauge{position:relative;padding-top:14px;margin-top:10px} .gauge .z{display:flex;gap:3px;height:10px} .gauge .z div:first-child{border-radius:5px 0 0 5px} .gauge .z div:last-child{border-radius:0 5px 5px 0}
   .gauge .m{position:absolute;top:0;width:3px;height:26px;background:var(--ink);border-radius:2px;transform:translateX(-50%)}
@@ -163,6 +163,18 @@
         <div><label for="g-km">Distance (km)</label><input type="number" id="g-km" step="0.001" min="1" placeholder="21.1"></div>
         <div><label for="g-sessions">Sorties / semaine</label><input type="number" id="g-sessions" min="1" max="14" placeholder="5"></div>
       </div>
+    </fieldset>
+    <fieldset>
+      <legend>Phases du plan (Garmin Coach)</legend>
+      <div class="two">
+        <div><label for="g-p-base">Début Base</label><input type="date" id="g-p-base"></div>
+        <div><label for="g-p-build">Début Build</label><input type="date" id="g-p-build"></div>
+      </div>
+      <div class="two">
+        <div><label for="g-p-peak">Début Pic</label><input type="date" id="g-p-peak"></div>
+        <div><label for="g-p-taper">Début Réduction</label><input type="date" id="g-p-taper"></div>
+      </div>
+      <p class="help">Dans Garmin Connect : Entraînement → ton plan → Aperçu du programme. Laissé vide : phases estimées d'après la date de course.</p>
     </fieldset>
     <div class="btns" style="justify-content:flex-start;margin-top:18px">
       <button class="btn" value="save" id="cfg-save">Enregistrer</button>
@@ -297,12 +309,12 @@
 
   // ---------- settings ----------
   $('#btn-sync').addEventListener('click', onSync);
-  $('#btn-settings').addEventListener('click', () => { const c = cfg(), g = goalCfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#g-name').value = g.name || ''; $('#g-date').value = g.date || ''; $('#g-target').value = g.target || ''; $('#g-km').value = g.km || ''; $('#g-sessions').value = g.sessions || ''; $('#settings').showModal(); });
+  $('#btn-settings').addEventListener('click', () => { const c = cfg(), g = goalCfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#g-name').value = g.name || ''; $('#g-date').value = g.date || ''; $('#g-target').value = g.target || ''; $('#g-km').value = g.km || ''; $('#g-sessions').value = g.sessions || ''; const pl = g.plan || {}; $('#g-p-base').value = pl.base || ''; $('#g-p-build').value = pl.build || ''; $('#g-p-peak').value = pl.peak || ''; $('#g-p-taper').value = pl.taper || ''; $('#settings').showModal(); });
   $('#cfg-save').addEventListener('click', () => {
     const url = $('#cfg-url').value.trim(), key = $('#cfg-key').value.trim();
     if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast("L'adresse doit commencer par https://script.google.com/"); return; }
     localStorage.setItem(LS_CFG, JSON.stringify({ url, key }));
-    localStorage.setItem(LS_GOAL, JSON.stringify({ name: $('#g-name').value.trim(), date: $('#g-date').value, target: $('#g-target').value.trim(), km: $('#g-km').value, sessions: $('#g-sessions').value }));
+    localStorage.setItem(LS_GOAL, JSON.stringify({ name: $('#g-name').value.trim(), date: $('#g-date').value, target: $('#g-target').value.trim(), km: $('#g-km').value, sessions: $('#g-sessions').value, plan: { base: $('#g-p-base').value, build: $('#g-p-build').value, peak: $('#g-p-peak').value, taper: $('#g-p-taper').value } }));
     render();
     toast('Réglages enregistrés'); if (url && key) setTimeout(() => syncRemote(false), 300);
   });
@@ -355,7 +367,28 @@
     const targetSec = parseTime(g.target || nr.goal);
     let km = parseFloat(g.km || nr.km) || null;
     if (!km) km = /marathon/i.test(name) ? (/semi|half/i.test(name) ? 21.0975 : 42.195) : (/10\s*k/i.test(name) ? 10 : null);
-    return { name, date: date ? new Date(date + 'T09:00:00') : null, targetSec, km, sessions: +(g.sessions || nr.sessions) || 5 };
+    const pl = g.plan || nr.plan || {}, D = (x) => (x ? new Date(x + 'T00:00:00') : null);
+    return { name, date: date ? new Date(date + 'T09:00:00') : null, targetSec, km, sessions: +(g.sessions || nr.sessions) || 5, plan: { base: D(pl.base), build: D(pl.build), peak: D(pl.peak), taper: D(pl.taper) } };
+  }
+  // Phases du plan : dates réelles si renseignées, sinon estimation d'après la date de course
+  function planInfo(G, now) {
+    if (!G.date) return null;
+    const race = startOfDay(G.date), P = G.plan, back = (w) => new Date(race.getTime() - w * 7 * DAY);
+    const real = P.base && P.build && P.peak && P.taper;
+    const b = real ? P : { base: back(24), build: back(15), peak: back(7), taper: back(1.5) };
+    const phases = [
+      { n: 'Base', from: b.base, to: b.build, tip: "l'essentiel en endurance, l'intensité arrive en Build." },
+      { n: 'Build', from: b.build, to: b.peak, tip: 'les séances de qualité comptent, garde les sorties faciles vraiment faciles.' },
+      { n: 'Pic', from: b.peak, to: b.taper, tip: 'place aux séances à allure course : récupère bien entre elles.' },
+      { n: 'Réduction', from: b.taper, to: race, tip: 'moins de volume, un peu d\'allure course, et du sommeil.' }
+    ];
+    const t = startOfDay(now).getTime();
+    let ph = -1; phases.forEach((x, i) => { if (t >= x.from.getTime()) ph = i; });
+    const sun = (d) => { const x = startOfDay(d); x.setDate(x.getDate() - x.getDay()); return x; }; // semaines du dimanche, comme Garmin Coach
+    const wk = Math.round((sun(now) - sun(b.base)) / (7 * DAY)) + 1, tot = Math.round((sun(race) - sun(b.base)) / (7 * DAY)) + 1;
+    const cur = phases[ph];
+    const prog = cur ? Math.min(1, Math.max(0, (t - cur.from.getTime()) / (cur.to.getTime() - cur.from.getTime()))) : 0;
+    return { phases, ph, wk, tot, prog, real, cur };
   }
 
   // ---------- charge (forme du jour) ----------
@@ -420,22 +453,24 @@
     // 1. Objectif
     if (G.date && G.date >= startOfDay(now)) {
       const days = Math.ceil((startOfDay(G.date) - startOfDay(now)) / DAY), weeks = Math.floor(days / 7);
-      const phases = [['Base', 99], ['Développement', 14], ['Spécifique', 8], ['Affûtage', 2]]; // semaines restantes au début de chaque phase (estimation)
-      let ph = 0; phases.forEach(([, w], i) => { if (weeks < w) ph = i; });
+      const PI = planInfo(G, now), phases = PI.phases, ph = PI.ph;
+      const endTxt = (x) => new Date(x.to.getTime() - DAY).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+      const phaseLine = PI.cur ? `<b style="color:var(--ink)">${PI.cur.n}</b> jusqu'au ${esc(endTxt(PI.cur))}${phases[ph + 1] ? ` · puis ${phases[ph + 1].n}` : ' · puis la course !'}` : `Début du plan le ${esc(phases[0].from.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))}`;
       const rec = (DATA.records || []).find((r) => /semi/i.test(r.label));
       const recAct = rec && acts.find((x) => String(x.id) === String(rec.activity_id));
       const goalPace = G.targetSec && G.km ? G.targetSec / G.km : null;
       parts.push(`<section class="card">
         <div class="row" style="align-items:flex-start"><div><div class="small" style="text-transform:uppercase;letter-spacing:.08em">Objectif</div><div style="font-size:18px;font-weight:700;margin-top:3px">${esc(G.name || 'Ma course')}</div><div class="small" style="color:var(--soft);margin-top:2px">${esc(G.date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
-        <div style="text-align:right"><div class="num" style="font-size:34px;line-height:1;color:var(--accent)">J-${days}</div><div class="small">${weeks} semaine${weeks > 1 ? 's' : ''}</div></div></div>
-        <div class="phase">${phases.map((_, i) => `<div class="${i < ph ? 'done' : i === ph ? 'on' : ''}"></div>`).join('')}</div>
-        <div class="phase-l">${phases.map(([n], i) => `<span class="${i === ph ? 'on' : ''}">${n}</span>`).join('')}</div>
+        <div style="text-align:right"><div class="num" style="font-size:34px;line-height:1;color:var(--accent)">J-${days}</div><div class="small">${PI.real && PI.wk >= 1 ? `semaine ${PI.wk} / ${PI.tot}` : `${weeks} semaine${weeks > 1 ? 's' : ''}`}</div></div></div>
+        <div class="phase" role="img" aria-label="Phase ${PI.cur ? PI.cur.n : 'à venir'}">${phases.map((_, i) => `<div class="${i < ph ? 'done' : ''}">${i === ph ? `<div class="f" style="width:${Math.max(4, PI.prog * 100)}%"></div>` : ''}</div>`).join('')}</div>
+        <div class="phase-l">${phases.map((x, i) => `<span class="${i === ph ? 'on' : ''}">${x.n}</span>`).join('')}</div>
+        <p class="small" style="margin:8px 0 0;color:var(--soft)">${phaseLine}</p>
         <div class="grid4" style="grid-template-columns:repeat(3,minmax(0,1fr))">
           <div><div class="small">Temps visé</div><div class="num" style="font-size:20px">${G.targetSec ? hms(G.targetSec) : '–'}</div></div>
           <div><div class="small">Allure cible</div><div class="num" style="font-size:20px">${goalPace ? pace(goalPace) : '–'}</div></div>
           <div><div class="small">Record actuel</div><div class="num" style="font-size:20px">${rec && !(recAct && recAct.suspect) ? hms(rec.sec) : '–'}</div></div>
         </div>
-        <p class="small" style="margin:10px 0 0">Phases estimées d'après la date de course.</p>
+        ${PI.real ? '' : `<p class="small" style="margin:10px 0 0">Phases estimées : renseigne les dates de ton plan dans ⚙ Réglages.</p>`}
       </section>`);
     } else {
       parts.push(`<section class="card" style="border-style:dashed"><div class="small">Objectif</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Renseigne ta prochaine course et ton temps visé dans ⚙ Réglages.</p></section>`);
@@ -501,6 +536,8 @@
     if (acts.some((a) => a.cat === 'muscu') && (legsAgo == null || legsAgo > 14)) tips.push(`${legsAgo == null ? 'Aucune séance jambes enregistrée' : `Dernière séance jambes il y a ${legsAgo} jours`}. Pour ${G.name ? 'le ' + esc(G.name.replace(/^le\s+/i, '')) : 'courir plus vite'}, une séance squats/fentes/mollets par semaine aide à tenir les derniers km.`);
     const r30 = inWindow(acts, now, 30).filter((a) => a.run && a.cad > 0);
     const cad = r30.length ? sum(r30, (a) => a.cad * 2 * a.sec) / sum(r30, (a) => a.sec) : null;
+    const PI2 = planInfo(G, now);
+    if (tips.length < 3 && PI2 && PI2.real && PI2.cur) tips.push(`Phase ${PI2.cur.n} jusqu'au ${esc(new Date(PI2.cur.to.getTime() - DAY).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }))} : ${PI2.cur.tip}`);
     if (tips.length < 3 && cad && cad < 160) tips.push(`Cadence moyenne ${fr0(cad)} pas/min : en endurance, essaie des pas un peu plus courts et rapides (viser 160-165).`);
     if (tips.length) parts.push(`<section class="card tips"><div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span style="font-size:13px;font-weight:700;color:var(--accent)">Conseils du jour</span></div>
       ${tips.slice(0, 3).map((t, i) => `<div class="tip"><b>${i + 1}</b><span>${t}</span></div>`).join('')}
