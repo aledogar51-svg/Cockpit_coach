@@ -711,8 +711,22 @@
   window.addEventListener('appinstalled', () => { installPrompt = null; $('#btn-install').hidden = true; toast('Cockpit installé sur ton écran d\'accueil ✓'); });
   $('#btn-install').addEventListener('click', async () => { if (!installPrompt) return; installPrompt.prompt(); await installPrompt.userChoice; installPrompt = null; $('#btn-install').hidden = true; });
 
-  window.addEventListener('hashchange', () => { TAB = (location.hash || '#cockpit').slice(1); render(); });
+  window.addEventListener('hashchange', () => { if (location.hash.startsWith('#setup=')) { applySetup(); render(); return; } TAB = (location.hash || '#cockpit').slice(1); render(); });
   window.addEventListener('storage', (e) => { if (e.key === LS_DATA) { loadLocal(); render(); } });
+
+  // Lien de configuration : #setup=<objectif et plan encodés> (aucune donnée sensible)
+  function applySetup() {
+    if (!location.hash.startsWith('#setup=')) return;
+    try {
+      const g = JSON.parse(decodeURIComponent(location.hash.slice(7))), cur = goalCfg(), ok = {};
+      ['name', 'date', 'target', 'km', 'sessions'].forEach((k) => { if (g[k] != null) ok[k] = String(g[k]).slice(0, 80); });
+      const plan = {}; ['base', 'build', 'peak', 'taper'].forEach((k) => { if (g.plan && /^\d{4}-\d{2}-\d{2}$/.test(g.plan[k] || '')) plan[k] = g.plan[k]; });
+      localStorage.setItem(LS_GOAL, JSON.stringify({ ...cur, ...ok, plan: { ...(cur.plan || {}), ...plan } }));
+      setTimeout(() => toast('Objectif et plan enregistrés ✓'), 300);
+    } catch (e) { setTimeout(() => toast('Lien de configuration illisible.'), 300); }
+    history.replaceState(null, '', location.pathname + '#cockpit'); TAB = 'cockpit';
+  }
+  applySetup();
 
   loadLocal();
   render();
