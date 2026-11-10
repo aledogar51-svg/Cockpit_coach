@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E1013">
+<meta name="robots" content="noindex, nofollow">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Cockpit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0E1013; --card:#171A1E; --line:#23282D; --muted:#9AA3AB; --soft:#C9CFD4; --ink:#F2F4F5;
+    --accent:#C6F432; --accent-2:#9DBE2E; --warn-bg:#2A2410; --warn:#FFE2A6; --warn-ic:#FFC24B;
+    --bad:#FF9B8A; --ok-bg:#122318; --ok:#A8E6B8; --blue:#8FB3FF;
+    --ef:#7FA6E8; --tempo:#C6F432; --frac:#FF7A45; --trail:#F2A33A; --muscu:#B58CFF; --autre:#6B7480;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{min-height:100vh;min-height:100dvh}
+  button{font-family:inherit;color:inherit}
+  a{color:var(--accent)}
+  .num{font-family:'Space Grotesk',sans-serif;font-weight:700;font-variant-numeric:tabular-nums}
+  .app{max-width:520px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 20px) 16px calc(96px + env(safe-area-inset-bottom))}
+  header.top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px}
+  header.top .sub{font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+  header.top h1{margin:2px 0 0;font-family:'Space Grotesk',sans-serif;font-size:26px}
+  .icon-btn{width:44px;height:44px;border-radius:22px;border:1px solid #2A2F35;background:var(--card);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:var(--accent)}
+  .icon-btn.spin svg{animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .label{font-size:13px;color:var(--muted)}
+  .small{font-size:12px;color:var(--muted)}
+  .big{font-size:44px;line-height:1}
+  .tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:4px;min-width:0}
+  .tile .v{font-size:22px}
+  .tile .t{font-size:11px;color:var(--muted)}
+  .bars{display:grid;gap:8px;align-items:end;height:120px;margin-top:12px}
+  .bar{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:6px;height:100%}
+  .bar span{font-size:10px;color:var(--muted)}
+  .bar div{width:100%;border-radius:6px;background:#3A4148;min-height:3px}
+  .bar.cur div{background:transparent;border:1.5px dashed var(--accent)}
+  .bar.last div{background:var(--accent)} .bar.last span{color:var(--ink);font-weight:600}
+  .xlabels{display:grid;gap:8px;font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
+  .alert{display:flex;gap:10px;align-items:flex-start;border-radius:12px;padding:10px 12px;margin-top:12px;font-size:13px;line-height:1.4}
+  .alert.warn{background:var(--warn-bg);color:var(--warn)} .alert.ok{background:var(--ok-bg);color:var(--ok)}
+  .hbar{display:flex;align-items:center;gap:10px;font-size:13px}
+  .hbar .n{width:104px} .hbar .track{flex:1;height:10px;background:var(--line);border-radius:5px;overflow:hidden}
+  .hbar .fill{height:100%;background:var(--blue);border-radius:5px} .hbar .c{width:22px;text-align:right}
+  .hbar.zero .n,.hbar.zero .c{color:var(--bad)}
+  .split{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:2px;margin:10px 0 8px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--soft)}
+  .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:middle}
+  .act{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}
+  .act:last-child{border-bottom:none}
+  .act .tag{width:6px;align-self:stretch;border-radius:3px;flex-shrink:0}
+  .act .main{flex:1;min-width:0}
+  .act .name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .act .meta{font-size:12px;color:var(--soft);margin-top:2px}
+  .act .when{font-size:11px;color:var(--muted);text-align:right;flex-shrink:0}
+  .week-h{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:16px 2px 4px}
+  .chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
+  .chip{min-height:36px;padding:0 14px;border-radius:18px;border:1px solid #2A2F35;background:var(--card);font-size:13px;white-space:nowrap;cursor:pointer}
+  .chip[aria-pressed="true"]{background:var(--accent);color:#0E1013;border-color:var(--accent);font-weight:700}
+  .hero-time{font-size:64px;line-height:.95;color:var(--accent)}
+  .badge{font-size:11px;font-weight:700;padding:4px 8px;border-radius:8px;white-space:nowrap}
+  .badge.ok{background:#A8E6B8;color:#0E1013} .badge.warn{background:#FFC24B;color:#0E1013}
+  .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+  .muted-v{color:#7D8790}
+  h2{font-size:15px;margin:0}
+  .empty{text-align:center;padding:28px 18px}
+  .empty p{color:var(--soft);line-height:1.5;font-size:14px}
+  .btn{min-height:44px;padding:0 18px;border-radius:14px;border:none;background:var(--accent);color:#0E1013;font-weight:700;font-size:14px;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid #2A2F35;color:var(--ink);font-weight:600}
+  .btns{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  nav.tabs{position:fixed;left:0;right:0;bottom:0;background:#121519;border-top:1px solid var(--line);padding:8px 6px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,minmax(0,1fr));z-index:5}
+  nav.tabs button{background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:48px;justify-content:center;color:var(--muted);font-size:11px;cursor:pointer}
+  nav.tabs button[aria-current="page"]{color:var(--accent);font-weight:600}
+  dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:20px;width:min(480px,calc(100% - 24px));padding:20px}
+  dialog::backdrop{background:rgba(0,0,0,.6)}
+  dialog label{display:block;font-size:13px;color:var(--soft);margin:14px 0 6px}
+  dialog input[type=text]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px}
+  dialog .help{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
+  .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#2A2F35;color:var(--ink);padding:10px 16px;border-radius:12px;font-size:13px;z-index:10;max-width:90%;text-align:center}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div>
+      <div class="sub" id="sub">—</div>
+      <h1 id="title">Cockpit</h1>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="btn-sync" aria-label="Synchroniser les données">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 4 21 10 15 10"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-settings" aria-label="Réglages" style="color:var(--muted)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+  </header>
+  <main id="view" class="stack"></main>
+</div>
+
+<nav class="tabs" aria-label="Navigation principale">
+  <button data-tab="cockpit"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>Cockpit</button>
+  <button data-tab="entrainement"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Entraînement</button>
+  <button data-tab="courses"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22V4"/><path d="M4 4h12l-2 4 2 4H4"/></svg>Courses</button>
+  <button data-tab="muscu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7v10"/><path d="M18 7v10"/><path d="M3 10v4"/><path d="M21 10v4"/><path d="M6 12h12"/></svg>Muscu</button>
+</nav>
+
+<input type="file" id="file-input" accept=".json,application/json" hidden>
+
+<dialog id="settings">
+  <form method="dialog">
+    <h2 style="font-size:18px">Réglages</h2>
+    <p class="help">Rien n'est stocké sur GitHub : tes réglages et tes données restent uniquement dans ce navigateur.</p>
+    <label for="cfg-client">ID client Google (OAuth)</label>
+    <input type="text" id="cfg-client" autocomplete="off" spellcheck="false" placeholder="xxxx.apps.googleusercontent.com">
+    <label for="cfg-file">ID du fichier sur Google Drive</label>
+    <input type="text" id="cfg-file" autocomplete="off" spellcheck="false" placeholder="colle l'ID ou le lien de partage">
+    <p class="help">Laissé vide : le bouton ↻ ouvre simplement le sélecteur de fichiers du téléphone (tu peux y choisir le fichier dans Drive).</p>
+    <div class="btns" style="justify-content:flex-start;margin-top:18px">
+      <button class="btn" value="save" id="cfg-save">Enregistrer</button>
+      <button class="btn ghost" type="button" id="cfg-import">Importer un fichier</button>
+      <button class="btn ghost" type="button" id="cfg-clear" style="color:var(--bad)">Effacer les données</button>
+      <button class="btn ghost" value="cancel">Fermer</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(() => {
+  'use strict';
+  const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v1', SS_TOKEN = 'cockpit.token.v1';
+  const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+  const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
+  const CAT = {
+    ef:    { label: 'Endurance', color: 'var(--ef)' },
+    tempo: { label: 'Tempo', color: 'var(--tempo)' },
+    frac:  { label: 'Fractionné', color: 'var(--frac)' },
+    trail: { label: 'Trail', color: 'var(--trail)' },
+    muscu: { label: 'Muscu', color: 'var(--muscu)' },
+    autre: { label: 'Autre', color: 'var(--autre)' }
+  };
+  const MUSCLE_GROUPS = [
+    ['Pecs', /pec|\bDC\b|d[ée]velopp[ée]/i],
+    ['Bras', /biceps|triceps|\bbras\b/i],
+    ['Épaules', /[ée]paule/i],
+    ['Dos', /\bdos\b|tirage|traction|rowing/i],
+    ['Abdos', /abdo|gainage|\bcore\b/i],
+    ['Jambes', /jambe|squat|cuisse|mollet|fessier|\blegs?\b|quadri|ischio|fente|presse/i],
+    ['Haut du corps', /haut du corps/i]
+  ];
+  const UPPER = ['Pecs', 'Bras', 'Épaules', 'Haut du corps'];
+
+  // ---------- utils ----------
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fr1 = (n) => (Math.round(n * 10) / 10).toLocaleString('fr-FR', { maximumFractionDigits: 1 });
+  const fr0 = (n) => Math.round(n).toLocaleString('fr-FR');
+  const pace = (secPerKm) => { if (!isFinite(secPerKm) || secPerKm <= 0) return '–'; const m = Math.floor(secPerKm / 60), s = Math.round(secPerKm % 60); return s === 60 ? `${m + 1}:00` : `${m}:${String(s).padStart(2, '0')}`; };
+  const hms = (sec) => { const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.round(sec % 60); return h ? `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}` : `${m}:${String(s).padStart(2, '0')}`; };
+  const dur = (sec) => { const h = Math.floor(sec / 3600), m = Math.round((sec % 3600) / 60); return h ? `${h} h ${String(m).padStart(2, '0')}` : `${m} min`; };
+  const DAY = 86400000;
+  const startOfDay = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+  const weekStart = (d) => { const x = startOfDay(d); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+  const isoWeek = (d) => { const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = x.getUTCDay() || 7; x.setUTCDate(x.getUTCDate() + 4 - day); const y0 = new Date(Date.UTC(x.getUTCFullYear(), 0, 1)); return Math.ceil(((x - y0) / DAY + 1) / 7); };
+  const dShort = (d) => d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  const dDay = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  const relDay = (d, now) => { const n = Math.round((startOfDay(now) - startOfDay(d)) / DAY); return n === 0 ? "aujourd'hui" : n === 1 ? 'hier' : n < 7 ? `il y a ${n} j` : dShort(d); };
+  const sum = (arr, f) => arr.reduce((t, x) => t + (f(x) || 0), 0);
+
+  // ---------- data ----------
+  function classify(a) {
+    if (a.type === 'WeightTraining' || a.type === 'Workout' && /poids|muscu/i.test(a.name)) return 'muscu';
+    if (!RUN_TYPES.includes(a.type)) return 'autre';
+    const n = a.name || '';
+    if (a.type === 'TrailRun' || /trail/i.test(n) || (a.km > 0 && a.dplus / a.km >= 20)) return 'trail';
+    if (/sprint|fraction|\bVMA\b|interval|c[ôo]tes?\b|\d+\s*x\s*\d/i.test(n)) return 'frac';
+    if (/tempo|seuil|allure sp/i.test(n)) return 'tempo';
+    if (/\bEF\b|endurance|r[ée]cup|\bSL\b|sortie longue/i.test(n)) return 'ef';
+    return a.sec / a.km < 335 ? 'tempo' : 'ef';
+  }
+  function muscleGroups(a) {
+    const txt = `${a.name || ''} ${a.desc || ''}`;
+    return MUSCLE_GROUPS.filter(([, re]) => re.test(txt)).map(([g]) => g);
+  }
+  function prepare(raw) {
+    if (!raw || !Array.isArray(raw.activities)) throw new Error('Fichier invalide : liste "activities" introuvable.');
+    const acts = raw.activities.map((a) => {
+      const x = { ...a, km: +a.km || 0, sec: +a.sec || 0, dplus: +a.dplus || 0, date: new Date(a.start) };
+      x.cat = classify(x);
+      x.run = ['ef', 'tempo', 'frac', 'trail'].includes(x.cat);
+      x.pace = x.run && x.km ? (x.race ? (x.elapsed || x.sec) : x.sec) / x.km : null;
+      x.suspect = x.run && x.max_kmh > 30;
+      x.groups = x.cat === 'muscu' ? muscleGroups(x) : [];
+      return x;
+    }).filter((a) => !isNaN(a.date)).sort((a, b) => b.date - a.date);
+    return { ...raw, acts };
+  }
+
+  // ---------- state ----------
+  let DATA = null;
+  let TAB = (location.hash || '#cockpit').slice(1);
+  let FILTER = 'tout';
+  const cfg = () => { try { return JSON.parse(localStorage.getItem(LS_CFG)) || {}; } catch { return {}; } };
+
+  function loadLocal() {
+    try { const s = localStorage.getItem(LS_DATA); if (s) DATA = prepare(JSON.parse(s)); } catch (e) { console.warn(e); DATA = null; }
+  }
+  function saveData(raw) {
+    DATA = prepare(raw);
+    try { localStorage.setItem(LS_DATA, JSON.stringify(raw)); } catch (e) { toast('Données chargées, mais pas mémorisées (stockage plein).'); }
+    render();
+  }
+
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3500); }
+
+  // ---------- Google Drive ----------
+  function loadGis() {
+    if (window.google?.accounts?.oauth2) return Promise.resolve();
+    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = res; s.onerror = () => rej(new Error('Impossible de charger Google Sign-In.')); document.head.appendChild(s); });
+  }
+  function cachedToken() {
+    try { const t = JSON.parse(sessionStorage.getItem(SS_TOKEN)); if (t && t.exp > Date.now() + 60000) return t.v; } catch {}
+    return null;
+  }
+  async function getToken(clientId, interactive) {
+    const c = cachedToken(); if (c) return c;
+    await loadGis();
+    return new Promise((res, rej) => {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: clientId, scope: SCOPE,
+        callback: (r) => {
+          if (r.error) return rej(new Error(r.error_description || r.error));
+          sessionStorage.setItem(SS_TOKEN, JSON.stringify({ v: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000 }));
+          res(r.access_token);
+        },
+        error_callback: (e) => rej(new Error(e?.message || 'Connexion Google annulée.'))
+      });
+      client.requestAccessToken({ prompt: interactive ? '' : 'none' });
+    });
+  }
+  function fileIdFrom(s) { const m = String(s || '').match(/[-\w]{25,}/); return m ? m[0] : ''; }
+  async function syncDrive() {
+    const { clientId, fileId } = cfg();
+    const id = fileIdFrom(fileId);
+    const btn = $('#btn-sync'); btn.classList.add('spin');
+    try {
+      let token = await getToken(clientId, true);
+      let r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, { headers: { Authorization: `Bearer ${token}` } });
+      if (r.status === 401) { sessionStorage.removeItem(SS_TOKEN); token = await getToken(clientId, true); r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, { headers: { Authorization: `Bearer ${token}` } }); }
+      if (!r.ok) throw new Error(r.status === 404 ? 'Fichier introuvable sur Drive (vérifie l\'ID).' : `Erreur Drive ${r.status}`);
+      saveData(await r.json());
+      toast('Données synchronisées depuis Google Drive ✓');
+    } catch (e) { toast(e.message); }
+    finally { btn.classList.remove('spin'); }
+  }
+  function onSync() { const c = cfg(); if (c.clientId && c.fileId) syncDrive(); else $('#file-input').click(); }
+
+  $('#file-input').addEventListener('change', async (ev) => {
+    const f = ev.target.files[0]; ev.target.value = '';
+    if (!f) return;
+    try { saveData(JSON.parse(await f.text())); toast('Données importées ✓'); } catch (e) { toast(e.message || 'Fichier illisible.'); }
+  });
+
+  // ---------- settings ----------
+  $('#btn-sync').addEventListener('click', onSync);
+  $('#btn-settings').addEventListener('click', () => { const c = cfg(); $('#cfg-client').value = c.clientId || ''; $('#cfg-file').value = c.fileId || ''; $('#settings').showModal(); });
+  $('#cfg-save').addEventListener('click', () => { localStorage.setItem(LS_CFG, JSON.stringify({ clientId: $('#cfg-client').value.trim(), fileId: fileIdFrom($('#cfg-file').value.trim()) || $('#cfg-file').value.trim() })); toast('Réglages enregistrés'); });
+  $('#cfg-import').addEventListener('click', () => { $('#settings').close(); $('#file-input').click(); });
+  $('#cfg-clear').addEventListener('click', () => { localStorage.removeItem(LS_DATA); sessionStorage.removeItem(SS_TOKEN); DATA = null; $('#settings').close(); render(); toast('Données effacées de ce téléphone'); });
+
+  // ---------- tabs ----------
+  document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => { TAB = b.dataset.tab; history.replaceState(null, '', '#' + TAB); render(); window.scrollTo(0, 0); }));
+
+  // ---------- analyses ----------
+  function weeklyRunKm(acts, now, n) {
+    const w0 = weekStart(now); const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const s = new Date(w0); s.setDate(s.getDate() - 7 * i); const e = new Date(s); e.setDate(e.getDate() + 7);
+      const runs = acts.filter((a) => a.run && a.date >= s && a.date < e);
+      out.push({ start: s, wk: isoWeek(s), km: sum(runs, (a) => a.km), dplus: sum(runs, (a) => a.dplus), count: runs.length, current: i === 0 });
+    }
+    return out;
+  }
+  function paceOf(list) { const km = sum(list, (a) => a.km); return km ? sum(list, (a) => a.sec) / km : null; }
+  function inWindow(acts, now, fromDays, toDays = 0) { const a0 = new Date(now - fromDays * DAY), a1 = new Date(now - toDays * DAY); return acts.filter((a) => a.date > a0 && a.date <= a1); }
+  function trend(cur, prev, lowerIsBetter = true) {
+    if (!cur || !prev) return '';
+    const d = cur - prev; if (Math.abs(d) < 3) return 'stable';
+    return (lowerIsBetter ? d < 0 : d > 0) ? `${pace(Math.abs(d)).replace(/^0:/, '')} s plus rapide` : `${pace(Math.abs(d)).replace(/^0:/, '')} s plus lent`;
+  }
+
+  // ---------- views ----------
+  const svgWarn = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--warn-ic)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>';
+  const svgOk = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0;margin-top:1px"><polyline points="20 6 9 17 4 12"/></svg>';
+
+  function actRow(a, now) {
+    const meta = a.run || a.km ? [a.km ? `${fr1(a.km)} km` : '', a.pace ? `${pace(a.pace)}/km` : '', a.dplus >= 30 ? `${fr0(a.dplus)} m D+` : '', !a.run && a.sec ? dur(a.sec) : ''].filter(Boolean).join(' · ') : [dur(a.sec), a.groups.length ? a.groups.join(', ') : ''].filter(Boolean).join(' · ');
+    return `<div class="act"><div class="tag" style="background:${CAT[a.cat].color}"></div><div class="main"><div class="name">${esc(a.name)}${a.race ? ' 🏁' : ''}</div><div class="meta">${esc(meta)}${a.suspect ? ' · <span style="color:var(--warn-ic)">GPS suspect</span>' : ''}</div></div><div class="when">${esc(relDay(a.date, now))}<br>${esc(CAT[a.cat].label)}</div></div>`;
+  }
+
+  function viewCockpit(now) {
+    const acts = DATA.acts;
+    const weeks = weeklyRunKm(acts, now, 7);
+    const max = Math.max(...weeks.map((w) => w.km), 1);
+    const last = weeks[weeks.length - 2], ref = weeks[weeks.length - 5];
+    const cols = `grid-template-columns:repeat(${weeks.length},minmax(0,1fr))`;
+    const bars = weeks.map((w, i) => `<div class="bar ${w.current ? 'cur' : i === weeks.length - 2 ? 'last' : ''}"><span>${fr0(w.km)}</span><div style="height:${Math.max(3, Math.round((w.km / max) * 100))}px"></div></div>`).join('');
+    let alert = '';
+    if (ref && ref.km > 0) {
+      const ramp = (last.km - ref.km) / ref.km;
+      alert = ramp > 0.3
+        ? `<div class="alert warn">${svgWarn}<span>+${fr0(ramp * 100)} % de volume en 3 semaines (${fr1(ref.km)} → ${fr1(last.km)} km). Une semaine allégée serait prudente.</span></div>`
+        : `<div class="alert ok">${svgOk}<span>Progression maîtrisée : ${ramp >= 0 ? '+' : ''}${fr0(ramp * 100)} % en 3 semaines.</span></div>`;
+    }
+    const r30 = inWindow(acts, now, 30).filter((a) => a.run), p30 = inWindow(acts, now, 60, 30).filter((a) => a.run);
+    const ef = paceOf(r30.filter((a) => a.cat === 'ef')), efPrev = paceOf(p30.filter((a) => a.cat === 'ef'));
+    const tp = r30.filter((a) => a.cat === 'tempo'), tempo = paceOf(tp), tempoPrev = paceOf(p30.filter((a) => a.cat === 'tempo'));
+    const cadRuns = r30.filter((a) => a.cad > 0);
+    const cad = cadRuns.length ? sum(cadRuns, (a) => a.cad * 2 * a.sec) / sum(cadRuns, (a) => a.sec) : null;
+    const runKm30 = sum(r30, (a) => a.km);
+    const split = ['ef', 'tempo', 'frac', 'trail'].map((c) => ({ c, km: sum(r30.filter((a) => a.cat === c), (a) => a.km) })).filter((x) => x.km > 0);
+    const m30 = inWindow(acts, now, 30).filter((a) => a.cat === 'muscu');
+    const upper = m30.filter((a) => a.groups.some((g) => UPPER.includes(g))).length;
+    const back = m30.filter((a) => a.groups.includes('Dos')).length;
+    const legs = m30.filter((a) => a.groups.includes('Jambes')).length;
+    const mmax = Math.max(upper, back, legs, 1);
+    const hb = (n, c) => `<div class="hbar ${c ? '' : 'zero'}"><span class="n">${n}</span><div class="track"><div class="fill" style="width:${(c / mmax) * 100}%"></div></div><span class="c">${c}</span></div>`;
+    const lastAct = acts[0];
+    return `
+      <section class="card">
+        <div class="row"><span class="label">Volume course · 7 semaines</span><span class="small">km</span></div>
+        <div class="row" style="justify-content:flex-start;margin-top:8px"><span class="num big">${fr1(last.km)}</span><span style="font-size:14px;color:var(--soft)">km sem. ${last.wk} · ${last.count} sorties · ${fr0(last.dplus)} m D+</span></div>
+        <div class="bars" style="${cols}" role="img" aria-label="Kilomètres par semaine : ${weeks.map((w) => `S${w.wk} ${fr1(w.km)}`).join(', ')}">${bars}</div>
+        <div class="xlabels" style="${cols}">${weeks.map((w) => `<span>S${w.wk}</span>`).join('')}</div>
+        ${alert}
+      </section>
+      <section class="tiles">
+        <div class="tile"><span class="t">Allure EF · 30 j</span><span class="num v">${pace(ef)}</span><span class="t">/km · ${esc(trend(ef, efPrev) || '—')}</span></div>
+        <div class="tile"><span class="t">Allure tempo · 30 j</span><span class="num v">${pace(tempo)}</span><span class="t">/km · ${tp.length} séance${tp.length > 1 ? 's' : ''}</span></div>
+        <div class="tile"><span class="t">Cadence · 30 j</span><span class="num v">${cad ? fr0(cad) : '–'}</span><span class="t">pas/min</span></div>
+      </section>
+      <section class="card">
+        <div class="row"><span class="label">Intensités · 30 derniers jours</span><span class="num" style="font-size:16px">${fr0(runKm30)} km</span></div>
+        <div class="split">${split.map((x) => `<div style="width:${(x.km / runKm30) * 100}%;background:${CAT[x.c].color}"></div>`).join('')}</div>
+        <div class="legend">${split.map((x) => `<span><span class="dot" style="background:${CAT[x.c].color}"></span>${CAT[x.c].label} ${fr0((x.km / runKm30) * 100)} %</span>`).join('')}</div>
+        <p class="small" style="margin:10px 0 0">Classement d'après le nom de la séance, sinon d'après l'allure.</p>
+      </section>
+      <section class="card">
+        <div class="row"><span class="label">Muscu · 30 derniers jours</span><span class="num" style="font-size:18px">${m30.length} séance${m30.length > 1 ? 's' : ''}</span></div>
+        <div class="stack" style="gap:8px;margin-top:12px">${hb('Haut du corps', upper)}${hb('Dos', back)}${hb('Jambes', legs)}</div>
+      </section>
+      ${lastAct ? `<section class="card"><div class="small">Dernière activité · ${esc(relDay(lastAct.date, now))}</div>${actRow(lastAct, now).replace('class="act"', 'class="act" style="border:none;padding-bottom:0"')}</section>` : ''}
+    `;
+  }
+
+  function viewEntrainement(now) {
+    const filters = [['tout', 'Tout'], ['course', 'Course'], ['trail', 'Trail'], ['muscu', 'Muscu'], ['autre', 'Autre']];
+    const keep = (a) => FILTER === 'tout' || (FILTER === 'course' ? ['ef', 'tempo', 'frac'].includes(a.cat) : a.cat === FILTER);
+    const list = DATA.acts.filter(keep);
+    const groups = new Map();
+    list.forEach((a) => { const k = weekStart(a.date).getTime(); if (!groups.has(k)) groups.set(k, []); groups.get(k).push(a); });
+    const r28 = inWindow(DATA.acts, now, 28).filter((a) => a.run);
+    return `
+      <div class="chips" role="group" aria-label="Filtrer">${filters.map(([k, l]) => `<button class="chip" data-filter="${k}" aria-pressed="${FILTER === k}">${l}</button>`).join('')}</div>
+      <section class="tiles">
+        <div class="tile"><span class="t">4 semaines</span><span class="num v">${fr0(sum(r28, (a) => a.km))}</span><span class="t">km courus</span></div>
+        <div class="tile"><span class="t">Sorties</span><span class="num v">${r28.length}</span><span class="t">en 4 semaines</span></div>
+        <div class="tile"><span class="t">Dénivelé</span><span class="num v">${fr0(sum(r28, (a) => a.dplus))}</span><span class="t">m D+</span></div>
+      </section>
+      <section>${[...groups.entries()].map(([k, arr]) => { const s = new Date(k); const km = sum(arr.filter((a) => a.run), (a) => a.km); return `<div class="week-h"><span>Semaine ${isoWeek(s)} · ${dShort(s)}</span><span>${km ? fr1(km) + ' km' : ''}</span></div><div class="card" style="padding:0 16px">${arr.map((a) => actRow(a, now)).join('')}</div>`; }).join('') || '<p class="small">Aucune activité pour ce filtre.</p>'}</section>
+    `;
+  }
+
+  function viewCourses(now) {
+    const races = DATA.acts.filter((a) => a.race);
+    const hero = races[0];
+    const nr = DATA.next_race;
+    let next;
+    if (nr && nr.date) {
+      const days = Math.ceil((startOfDay(new Date(nr.date)) - startOfDay(now)) / DAY);
+      next = `<section class="card"><div class="row"><div><div class="small">Prochain objectif</div><div style="font-size:16px;font-weight:600;margin-top:2px">${esc(nr.name || 'Course')}</div><div class="small" style="margin-top:2px">${esc(dDay(new Date(nr.date)))}${nr.km ? ' · ' + fr1(nr.km) + ' km' : ''}${nr.dplus ? ' · ' + fr0(nr.dplus) + ' m D+' : ''}${nr.goal ? ' · objectif ' + esc(nr.goal) : ''}</div></div><span class="num" style="font-size:30px;color:var(--accent)">J-${Math.max(0, days)}</span></div></section>`;
+    } else {
+      next = `<section class="card" style="border-style:dashed"><div class="small">Prochain objectif</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Aucun pour l'instant. Ajoute <code>next_race</code> dans ton fichier de données (nom, date, km, D+, objectif).</p></section>`;
+    }
+    let heroHtml = '';
+    if (hero) {
+      const t = hero.elapsed || hero.sec;
+      const goal = hero.goal_sec ? (t <= hero.goal_sec ? `<span class="badge ok">Objectif atteint</span>` : `<span class="badge warn">Objectif manqué</span>`) : '';
+      const delta = hero.goal_sec ? `objectif ${hms(hero.goal_sec)} · ${t <= hero.goal_sec ? '−' : '+'}${dur(Math.abs(hero.goal_sec - t))}` : '';
+      heroHtml = `<section class="card">
+        <div class="row" style="align-items:flex-start"><div><div class="small">${esc(dDay(hero.date))}</div><h2 style="font-size:20px;margin-top:4px">${esc(hero.name)}</h2></div>${goal}</div>
+        <div class="row" style="justify-content:flex-start;align-items:flex-end;margin-top:12px;gap:12px"><span class="num hero-time">${hms(t)}</span><span class="small" style="line-height:1.4">temps officiel<br>${esc(delta)}</span></div>
+        <div class="grid4">
+          <div><div class="num" style="font-size:20px">${fr1(hero.km)}</div><div class="small">km</div></div>
+          <div><div class="num" style="font-size:20px">${fr0(hero.dplus)}</div><div class="small">m D+</div></div>
+          <div><div class="num" style="font-size:20px">${pace(hero.pace)}</div><div class="small">/km</div></div>
+          <div><div class="num" style="font-size:20px">${hero.re ?? '–'}</div><div class="small">effort</div></div>
+        </div>
+        ${hero.desc ? `<p class="small" style="margin:12px 0 0;color:var(--soft)">« ${esc(hero.desc)} »</p>` : ''}
+      </section>`;
+    }
+    const byId = new Map(DATA.acts.map((a) => [String(a.id), a]));
+    const recs = (DATA.records || []).map((r) => { const a = byId.get(String(r.activity_id)); return { ...r, suspect: a ? a.suspect : false, from: a ? a.name : '' }; });
+    const longest = DATA.acts.filter((a) => a.run).sort((a, b) => b.km - a.km)[0];
+    const recHtml = recs.map((r) => `<div class="tile"><span class="t">${esc(r.label)}</span><span class="num v ${r.suspect ? 'muted-v' : ''}" style="font-size:26px">${hms(r.sec)}</span><span class="t" ${r.suspect ? 'style="color:var(--warn-ic)"' : ''}>${r.suspect ? 'À vérifier · vitesse max anormale' : esc(dShort(new Date(r.date)))}</span></div>`).join('')
+      + (longest ? `<div class="tile"><span class="t">Plus longue sortie</span><span class="num v" style="font-size:26px">${fr1(longest.km)} km</span><span class="t">${esc(dShort(longest.date))}</span></div>` : '');
+    return `
+      ${next}
+      ${heroHtml}
+      <h2 style="margin-top:6px">Records</h2>
+      <section class="grid2">${recHtml}</section>
+      <h2 style="margin-top:6px">Toutes mes courses</h2>
+      <section class="card" style="padding:0 16px">${races.map((a) => actRow(a, now)).join('') || '<p class="small">Marque une activité avec "race": true dans le fichier.</p>'}</section>
+    `;
+  }
+
+  function viewMuscu(now) {
+    const m = DATA.acts.filter((a) => a.cat === 'muscu');
+    const w0 = weekStart(now); const weeks = [];
+    for (let i = 7; i >= 0; i--) { const s = new Date(w0); s.setDate(s.getDate() - 7 * i); const e = new Date(s); e.setDate(e.getDate() + 7); weeks.push({ wk: isoWeek(s), n: m.filter((a) => a.date >= s && a.date < e).length, current: i === 0 }); }
+    const max = Math.max(...weeks.map((w) => w.n), 1);
+    const cols = `grid-template-columns:repeat(${weeks.length},minmax(0,1fr))`;
+    const m60 = inWindow(m, now, 60);
+    const counts = MUSCLE_GROUPS.map(([g]) => [g, m60.filter((a) => a.groups.includes(g)).length]);
+    const cmax = Math.max(...counts.map((c) => c[1]), 1);
+    const lastLegs = m.find((a) => a.groups.includes('Jambes'));
+    const tot = sum(m60, (a) => a.sec);
+    return `
+      <section class="tiles">
+        <div class="tile"><span class="t">60 jours</span><span class="num v">${m60.length}</span><span class="t">séances</span></div>
+        <div class="tile"><span class="t">Temps total</span><span class="num v">${fr0(tot / 3600)} h</span><span class="t">en 60 jours</span></div>
+        <div class="tile"><span class="t">Durée moy.</span><span class="num v">${m60.length ? fr0(tot / m60.length / 60) : '–'}</span><span class="t">min / séance</span></div>
+      </section>
+      <section class="card">
+        <span class="label">Séances par semaine</span>
+        <div class="bars" style="${cols};height:90px">${weeks.map((w) => `<div class="bar ${w.current ? 'cur' : ''}"><span>${w.n}</span><div style="height:${Math.max(3, Math.round((w.n / max) * 70))}px;${w.current ? '' : 'background:var(--muscu)'}"></div></div>`).join('')}</div>
+        <div class="xlabels" style="${cols}">${weeks.map((w) => `<span>S${w.wk}</span>`).join('')}</div>
+      </section>
+      <section class="card">
+        <span class="label">Groupes travaillés · 60 jours</span>
+        <div class="stack" style="gap:8px;margin-top:12px">${counts.map(([g, c]) => `<div class="hbar ${c ? '' : 'zero'}"><span class="n">${g}</span><div class="track"><div class="fill" style="width:${(c / cmax) * 100}%;background:var(--muscu)"></div></div><span class="c">${c}</span></div>`).join('')}</div>
+        ${!lastLegs ? `<div class="alert warn">${svgWarn}<span>Aucune séance jambes enregistrée. Pour le trail, quadriceps et mollets encaissent les descentes.</span></div>` : ''}
+        <p class="small" style="margin:10px 0 0">Groupes détectés dans le nom ou la description de la séance (ex. « jambes », « squat », « dos »).</p>
+      </section>
+      <section class="card" style="padding:0 16px">${m.slice(0, 20).map((a) => actRow(a, now)).join('') || '<p class="small">Aucune séance de muscu.</p>'}</section>
+    `;
+  }
+
+  function viewEmpty() {
+    return `<section class="card empty">
+      <h2 style="font-size:20px">Bienvenue 👋</h2>
+      <p>Cette page ne contient aucune donnée. Charge ton fichier <b>cockpit-data.json</b> : depuis le sélecteur de fichiers (Drive compris), ou configure la synchro Google Drive dans les réglages.</p>
+      <div class="btns"><button class="btn" id="e-import">Choisir le fichier</button><button class="btn ghost" id="e-settings">Réglages Drive</button></div>
+    </section>`;
+  }
+
+  const TITLES = { cockpit: 'Cockpit', entrainement: 'Entraînement', courses: 'Courses', muscu: 'Muscu' };
+  function render() {
+    if (!TITLES[TAB]) TAB = 'cockpit';
+    document.querySelectorAll('nav.tabs button').forEach((b) => b.setAttribute('aria-current', b.dataset.tab === TAB ? 'page' : 'false'));
+    $('#title').textContent = TITLES[TAB];
+    const now = new Date();
+    $('#sub').textContent = `Semaine ${isoWeek(now)} · ${now.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+    const v = $('#view');
+    if (!DATA) { v.innerHTML = viewEmpty(); $('#e-import').onclick = () => $('#file-input').click(); $('#e-settings').onclick = () => $('#btn-settings').click(); return; }
+    v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
+    if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
+    v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+  }
+
+  window.addEventListener('hashchange', () => { TAB = (location.hash || '#cockpit').slice(1); render(); });
+  window.addEventListener('storage', (e) => { if (e.key === LS_DATA) { loadLocal(); render(); } });
+
+  loadLocal();
+  render();
+})();
+</script>
+</body>
+</html>
