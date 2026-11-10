@@ -1,0 +1,3 @@
+# Données perso : ne jamais publier
+*.json
+!manifest.webmanifest

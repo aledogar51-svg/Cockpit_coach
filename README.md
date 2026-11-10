@@ -4,9 +4,12 @@ Page perso (mobile) qui analyse mes activités Strava.
 **Ce dépôt ne contient aucune donnée.** Les données vivent dans un fichier `cockpit-data.json` sur mon Google Drive et ne sont lues que depuis mon téléphone, après connexion Google.
 
 ## Mise en ligne (GitHub Pages)
-1. Déposer uniquement `index.html` dans le dépôt (jamais le fichier `.json`).
+1. Déposer `index.html`, `manifest.webmanifest`, `sw.js` et le dossier `icons/` (jamais le fichier `.json`).
 2. Settings → Pages → Source : *Deploy from a branch* → `main` / `root`.
 3. La page est servie sur `https://<mon-pseudo>.github.io/<nom-du-depot>/`.
+
+## Installer comme une appli
+Ouvrir la page dans Chrome sur le téléphone → bouton **Installer** (ou menu ⋮ → *Installer l'application*). Icône sur l'écran d'accueil, plein écran, fonctionne hors connexion avec les dernières données chargées.
 
 ## Synchro Google Drive (une seule fois)
 1. https://console.cloud.google.com → nouveau projet « Cockpit ».
