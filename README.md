@@ -1,25 +1,49 @@
 # Cockpit – mon suivi course / trail / muscu
 
-Page perso (mobile) qui analyse mes activités Strava.  
-**Ce dépôt ne contient aucune donnée.** Les données vivent dans un fichier `cockpit-data.json` sur mon Google Drive et ne sont lues que depuis mon téléphone, après connexion Google.
+Appli perso pour téléphone qui analyse mes activités Strava.
+**Ce dépôt ne contient aucune donnée.** Les données vivent dans `cockpit-data.json` sur mon Google Drive. Un script Google Apps Script, privé et dans mon compte, les met à jour depuis Strava.
 
-## Mise en ligne (GitHub Pages)
-1. Déposer `index.html`, `manifest.webmanifest`, `sw.js` et le dossier `icons/` (jamais le fichier `.json`).
-2. Settings → Pages → Source : *Deploy from a branch* → `main` / `root`.
-3. La page est servie sur `https://<mon-pseudo>.github.io/<nom-du-depot>/`.
+```
+Strava ──► Script Google (toutes les 15 min + à chaque ouverture de l'appli) ──► cockpit-data.json (Drive)
+                                         ▲                                              │
+                                         └──────── appli Cockpit (clé secrète) ◄────────┘
+```
 
-## Installer comme une appli
-Ouvrir la page dans Chrome sur le téléphone → bouton **Installer** (ou menu ⋮ → *Installer l'application*). Icône sur l'écran d'accueil, plein écran, fonctionne hors connexion avec les dernières données chargées.
+## Installer l'appli
+Ouvrir https://aledogar51-svg.github.io/Cockpit_coach/ dans Chrome, puis bouton **Installer** (ou menu ⋮ → *Installer l'application*).
 
-## Synchro Google Drive (une seule fois)
-1. https://console.cloud.google.com → nouveau projet « Cockpit ».
-2. *API et services → Bibliothèque* → activer **Google Drive API**.
-3. *Écran de consentement OAuth* → Externe, mode **Test**, ajouter mon adresse Gmail comme utilisateur test.
-4. *Identifiants → Créer → ID client OAuth* → Application Web → *Origines JavaScript autorisées* : `https://<mon-pseudo>.github.io`.
-5. Sur la page : ⚙ Réglages → coller l'ID client et le lien de partage du fichier Drive (le fichier peut rester privé).
+## Brancher Strava (une seule fois, plus simple sur ordinateur)
 
-Sans ces réglages, le bouton ↻ ouvre le sélecteur de fichiers du téléphone (Drive y est accessible).
+**A. Créer l'application Strava**
+1. https://www.strava.com/settings/api → créer une application.
+2. Nom `Cockpit`, catégorie *Training*, site `https://aledogar51-svg.github.io/Cockpit_coach/`, **Authorization Callback Domain : `localhost`**.
+3. Noter le **Client ID** et le **Client Secret**.
+
+**B. Repérer le fichier Drive**
+Dans Drive, sur `cockpit-data.json` : *Partager → Copier le lien*. Le fichier peut rester privé, le lien sert juste à trouver son identifiant.
+
+**C. Créer le script**
+1. https://script.google.com → *Nouveau projet* → le renommer « Cockpit Strava ».
+2. Remplacer tout le contenu par [`apps-script/Code.gs`](apps-script/Code.gs).
+3. En haut, remplir `STRAVA_CLIENT_ID`, `STRAVA_CLIENT_SECRET` et `DRIVE_FILE_ID` (le lien copié suffit), puis enregistrer (💾).
+
+**D. Lancer les 3 étapes** (menu déroulant de fonctions → ▶ *Exécuter*, résultat dans le *Journal d'exécution*)
+1. `etape1_lienStrava` : Google demande des autorisations la 1re fois (*Paramètres avancés → Accéder à Cockpit Strava*). Ouvrir le lien affiché et cliquer *Autoriser*. La page qui suit ne charge pas, c'est normal. Copier dans la barre d'adresse la valeur après `code=` (jusqu'à `&scope`). La coller dans `CODE_STRAVA`, puis enregistrer.
+2. `etape2_connecterStrava` : affiche « ✅ Connecté à Strava ».
+3. `etape3_installer` : installe la synchro toutes les 15 min, fait une 1re synchro et affiche ta **clé secrète** 🔑.
+
+**E. Publier le script pour l'appli**
+*Déployer → Nouveau déploiement → ⚙ Application Web*. *Exécuter en tant que : Moi*, *Qui a accès : Tout le monde* → *Déployer* → copier l'**URL de l'application Web**.
+(« Tout le monde » est nécessaire pour que l'appli puisse l'appeler, mais sans la clé secrète le script ne renvoie rien.)
+
+**F. Dans l'appli** : ⚙ Réglages → coller l'URL et la clé → *Enregistrer*.
+
+Ensuite, à chaque ouverture, l'appli récupère tes nouvelles activités Strava. ↻ force une synchro.
+
+## Si je modifie le script plus tard
+*Déployer → Gérer les déploiements → ✏ → Version : Nouvelle version → Déployer* (l'URL ne change pas).
 
 ## Format des données
-`activities[]` : `id, name, type, start, km, sec, elapsed, dplus, cad, re, kcal, max_kmh, desc, race, goal_sec`  
+`activities[]` : `id, name, type, start, km, sec, elapsed, dplus, cad, hr, hr_max, re, kcal, max_kmh, desc, race, goal_sec`
 `records[]` : `label, sec, date, activity_id` · `next_race` : `{ name, date, km, dplus, goal }` ou `null`
+Ajouts à la main conservés par le script : `race: true`, `goal_sec`, `next_race`.

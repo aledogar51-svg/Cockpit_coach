@@ -128,12 +128,12 @@
 <dialog id="settings">
   <form method="dialog">
     <h2 style="font-size:18px">Réglages</h2>
-    <p class="help">Rien n'est stocké sur GitHub : tes réglages et tes données restent uniquement dans ce navigateur.</p>
-    <label for="cfg-client">ID client Google (OAuth)</label>
-    <input type="text" id="cfg-client" autocomplete="off" spellcheck="false" placeholder="xxxx.apps.googleusercontent.com">
-    <label for="cfg-file">ID du fichier sur Google Drive</label>
-    <input type="text" id="cfg-file" autocomplete="off" spellcheck="false" placeholder="colle l'ID ou le lien de partage">
-    <p class="help">Laissé vide : le bouton ↻ ouvre simplement le sélecteur de fichiers du téléphone (tu peux y choisir le fichier dans Drive).</p>
+    <p class="help">Rien n'est stocké sur GitHub : ton adresse, ta clé et tes données restent uniquement sur ce téléphone.</p>
+    <label for="cfg-url">Adresse de synchro (Apps Script)</label>
+    <input type="text" id="cfg-url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="cfg-key">Clé secrète</label>
+    <input type="text" id="cfg-key" autocomplete="off" spellcheck="false" placeholder="donnée par etape3_installer">
+    <p class="help">Une fois rempli, l'appli récupère tes nouvelles activités Strava à chaque ouverture. Laissé vide : le bouton ↻ ouvre le sélecteur de fichiers du téléphone.</p>
     <div class="btns" style="justify-content:flex-start;margin-top:18px">
       <button class="btn" value="save" id="cfg-save">Enregistrer</button>
       <button class="btn ghost" type="button" id="cfg-import">Importer un fichier</button>
@@ -148,8 +148,7 @@
 <script>
 (() => {
   'use strict';
-  const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v1', SS_TOKEN = 'cockpit.token.v1';
-  const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+  const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
     ef:    { label: 'Endurance', color: 'var(--ef)' },
@@ -233,47 +232,32 @@
 
   function toast(msg) { const t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 3500); }
 
-  // ---------- Google Drive ----------
-  function loadGis() {
-    if (window.google?.accounts?.oauth2) return Promise.resolve();
-    return new Promise((res, rej) => { const s = document.createElement('script'); s.src = 'https://accounts.google.com/gsi/client'; s.onload = res; s.onerror = () => rej(new Error('Impossible de charger Google Sign-In.')); document.head.appendChild(s); });
-  }
-  function cachedToken() {
-    try { const t = JSON.parse(sessionStorage.getItem(SS_TOKEN)); if (t && t.exp > Date.now() + 60000) return t.v; } catch {}
-    return null;
-  }
-  async function getToken(clientId, interactive) {
-    const c = cachedToken(); if (c) return c;
-    await loadGis();
-    return new Promise((res, rej) => {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: clientId, scope: SCOPE,
-        callback: (r) => {
-          if (r.error) return rej(new Error(r.error_description || r.error));
-          sessionStorage.setItem(SS_TOKEN, JSON.stringify({ v: r.access_token, exp: Date.now() + (r.expires_in || 3600) * 1000 }));
-          res(r.access_token);
-        },
-        error_callback: (e) => rej(new Error(e?.message || 'Connexion Google annulée.'))
-      });
-      client.requestAccessToken({ prompt: interactive ? '' : 'none' });
-    });
-  }
-  function fileIdFrom(s) { const m = String(s || '').match(/[-\w]{25,}/); return m ? m[0] : ''; }
-  async function syncDrive() {
-    const { clientId, fileId } = cfg();
-    const id = fileIdFrom(fileId);
+  // ---------- synchro (script Google Apps Script) ----------
+  let syncing = false;
+  async function syncRemote(silent) {
+    const { url, key } = cfg();
+    if (!url || !key || syncing) return;
+    syncing = true;
     const btn = $('#btn-sync'); btn.classList.add('spin');
+    const before = DATA ? DATA.acts.length : 0;
+    const ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 45000);
     try {
-      let token = await getToken(clientId, true);
-      let r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, { headers: { Authorization: `Bearer ${token}` } });
-      if (r.status === 401) { sessionStorage.removeItem(SS_TOKEN); token = await getToken(clientId, true); r = await fetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(id)}?alt=media`, { headers: { Authorization: `Bearer ${token}` } }); }
-      if (!r.ok) throw new Error(r.status === 404 ? 'Fichier introuvable sur Drive (vérifie l\'ID).' : `Erreur Drive ${r.status}`);
-      saveData(await r.json());
-      toast('Données synchronisées depuis Google Drive ✓');
-    } catch (e) { toast(e.message); }
-    finally { btn.classList.remove('spin'); }
+      const r = await fetch(`${url}${url.includes('?') ? '&' : '?'}key=${encodeURIComponent(key)}&sync=1`, { signal: ctrl.signal, redirect: 'follow' });
+      if (!r.ok) throw new Error(`Le script a répondu ${r.status}.`);
+      const data = await r.json();
+      if (data.error) throw new Error(data.error);
+      const info = data.sync; delete data.sync;
+      saveData(data);
+      const added = DATA.acts.length - before;
+      if (info && info.statut === 'erreur') toast('Strava indisponible, données du Drive affichées : ' + info.message);
+      else if (before === 0) toast(`Données chargées ✓ (${DATA.acts.length} activités)`);
+      else if (added > 0) toast(`${added} nouvelle${added > 1 ? 's' : ''} activité${added > 1 ? 's' : ''} ✓`);
+      else if (!silent) toast('À jour ✓');
+    } catch (e) {
+      if (!silent || !DATA) toast(e.name === 'AbortError' ? 'La synchro a pris trop de temps, réessaie.' : (navigator.onLine ? e.message : 'Hors connexion : dernières données affichées.'));
+    } finally { clearTimeout(timer); syncing = false; btn.classList.remove('spin'); }
   }
-  function onSync() { const c = cfg(); if (c.clientId && c.fileId) syncDrive(); else $('#file-input').click(); }
+  function onSync() { const c = cfg(); if (c.url && c.key) syncRemote(false); else $('#file-input').click(); }
 
   $('#file-input').addEventListener('change', async (ev) => {
     const f = ev.target.files[0]; ev.target.value = '';
@@ -283,10 +267,16 @@
 
   // ---------- settings ----------
   $('#btn-sync').addEventListener('click', onSync);
-  $('#btn-settings').addEventListener('click', () => { const c = cfg(); $('#cfg-client').value = c.clientId || ''; $('#cfg-file').value = c.fileId || ''; $('#settings').showModal(); });
-  $('#cfg-save').addEventListener('click', () => { localStorage.setItem(LS_CFG, JSON.stringify({ clientId: $('#cfg-client').value.trim(), fileId: fileIdFrom($('#cfg-file').value.trim()) || $('#cfg-file').value.trim() })); toast('Réglages enregistrés'); });
+  $('#btn-settings').addEventListener('click', () => { const c = cfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#settings').showModal(); });
+  $('#cfg-save').addEventListener('click', () => {
+    const url = $('#cfg-url').value.trim(), key = $('#cfg-key').value.trim();
+    if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast("L'adresse doit commencer par https://script.google.com/"); return; }
+    localStorage.setItem(LS_CFG, JSON.stringify({ url, key }));
+    toast('Réglages enregistrés'); if (url && key) setTimeout(() => syncRemote(false), 300);
+  });
   $('#cfg-import').addEventListener('click', () => { $('#settings').close(); $('#file-input').click(); });
-  $('#cfg-clear').addEventListener('click', () => { localStorage.removeItem(LS_DATA); sessionStorage.removeItem(SS_TOKEN); DATA = null; $('#settings').close(); render(); toast('Données effacées de ce téléphone'); });
+  $('#cfg-clear').addEventListener('click', () => { localStorage.removeItem(LS_DATA); DATA = null; $('#settings').close(); render(); toast('Données effacées de ce téléphone'); });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && DATA && Date.now() - (syncRemote.last || 0) > 5 * 60000) { syncRemote.last = Date.now(); syncRemote(true); } });
 
   // ---------- tabs ----------
   document.querySelectorAll('nav.tabs button').forEach((b) => b.addEventListener('click', () => { TAB = b.dataset.tab; history.replaceState(null, '', '#' + TAB); render(); window.scrollTo(0, 0); }));
@@ -469,8 +459,8 @@
   function viewEmpty() {
     return `<section class="card empty">
       <h2 style="font-size:20px">Bienvenue 👋</h2>
-      <p>Cette page ne contient aucune donnée. Charge ton fichier <b>cockpit-data.json</b> : depuis le sélecteur de fichiers (Drive compris), ou configure la synchro Google Drive dans les réglages.</p>
-      <div class="btns"><button class="btn" id="e-import">Choisir le fichier</button><button class="btn ghost" id="e-settings">Réglages Drive</button></div>
+      <p>Cette page ne contient aucune donnée. Renseigne l'adresse de synchro et ta clé dans les réglages, ou charge ton fichier <b>cockpit-data.json</b> depuis le sélecteur (Drive compris).</p>
+      <div class="btns"><button class="btn" id="e-import">Choisir le fichier</button><button class="btn ghost" id="e-settings">Réglages</button></div>
     </section>`;
   }
 
@@ -502,6 +492,8 @@
 
   loadLocal();
   render();
+  syncRemote.last = Date.now();
+  syncRemote(true);
 })();
 </script>
 </body>
