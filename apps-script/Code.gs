@@ -83,6 +83,31 @@ function importerHistorique() {
   Logger.log('✅ Historique importé : ' + ajout + ' activités ajoutées (' + data.activities.length + ' au total).');
 }
 
+/** À lancer une fois : ajoute le cardio (FC moyenne/max) et l'effort aux activités des 4 derniers mois déjà importées. */
+function recupererCardio() {
+  const data = lireDonnees_();
+  const token = jetonStrava_();
+  const index = new Map(data.activities.map(a => [String(a.id), a]));
+  const after = Math.floor(Date.now() / 1000) - 120 * 86400;
+  let page = 1, maj = 0;
+  while (page <= 5) {
+    const lot = strava_('/athlete/activities?per_page=100&page=' + page + '&after=' + after, token);
+    lot.forEach(a => {
+      const id = String(a.id), ancienne = index.get(id), m = versCockpit_(a, null);
+      const fusion = Object.assign({}, ancienne || {}, m);
+      if (ancienne && ancienne.race) fusion.race = true;
+      if (!ancienne || JSON.stringify(ancienne) !== JSON.stringify(fusion)) maj++;
+      index.set(id, fusion);
+    });
+    if (lot.length < 100) break;
+    page++;
+  }
+  data.activities = trier_([...index.values()]);
+  ecrireDonnees_(data);
+  const avecFc = data.activities.filter(a => a.hr).length;
+  Logger.log('✅ ' + maj + ' activités mises à jour. ' + avecFc + ' activités ont maintenant le cardio.');
+}
+
 /** Optionnel : affiche la clé secrète si tu l'as perdue. */
 function afficherCle() { Logger.log(PropertiesService.getScriptProperties().getProperty('CLE_SECRETE')); }
 

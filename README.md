@@ -40,6 +40,10 @@ Dans Drive, sur `cockpit-data.json` : *Partager → Copier le lien*. Le fichier 
 
 Ensuite, à chaque ouverture, l'appli récupère tes nouvelles activités Strava. ↻ force une synchro.
 
+**G. (Une fois) Récupérer le cardio de l'historique** : lancer `recupererCardio` dans le script. Cela remplit la courbe « EF à FC égale » du Cockpit.
+
+**Objectif de course** : ⚙ Réglages → *Mon objectif* (course, date, temps visé, sorties par semaine). Ces infos restent sur le téléphone.
+
 ## Si je modifie le script plus tard
 *Déployer → Gérer les déploiements → ✏ → Version : Nouvelle version → Déployer* (l'URL ne change pas).
 

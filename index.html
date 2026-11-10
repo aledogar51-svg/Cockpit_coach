@@ -90,6 +90,23 @@
   dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:20px;width:min(480px,calc(100% - 24px));padding:20px}
   dialog::backdrop{background:rgba(0,0,0,.6)}
   dialog label{display:block;font-size:13px;color:var(--soft);margin:14px 0 6px}
+  dialog input[type=date],dialog input[type=number]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px;color-scheme:dark}
+  dialog fieldset{border:none;padding:0;margin:18px 0 0;border-top:1px solid var(--line)}
+  dialog legend{font-size:14px;font-weight:700;padding:14px 0 0}
+  .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .phase{display:flex;gap:3px;margin-top:12px} .phase div{flex:1;height:6px;border-radius:3px;background:#2C3238} .phase div.on{background:var(--accent)} .phase div.done{background:#5C6B2A}
+  .phase-l{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));font-size:11px;color:var(--muted);margin-top:6px} .phase-l span:last-child{text-align:right} .phase-l .on{color:var(--ink);font-weight:600}
+  .gauge{position:relative;padding-top:14px;margin-top:10px} .gauge .z{display:flex;gap:3px;height:10px} .gauge .z div:first-child{border-radius:5px 0 0 5px} .gauge .z div:last-child{border-radius:0 5px 5px 0}
+  .gauge .m{position:absolute;top:0;width:3px;height:26px;background:var(--ink);border-radius:2px;transform:translateX(-50%)}
+  .gauge-l{display:grid;gap:3px;font-size:10px;color:var(--muted);margin-top:6px}
+  .days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:14px}
+  .day{display:flex;flex-direction:column;align-items:center;gap:6px} .day .l{font-size:11px;color:var(--muted)} .day.today .l{color:var(--ink);font-weight:700}
+  .day .b{width:100%;max-width:42px;aspect-ratio:1;border-radius:12px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;color:#0E1013}
+  .day .b.rest{background:#1F2328;color:#6B7480} .day .b.todo{border:1.5px dashed #3A4148;color:#6B7480} .day.today .b.todo{border:2px solid var(--accent);color:var(--accent)}
+  .day .mu{width:6px;height:6px;border-radius:3px} .day .mu.on{background:var(--muscu)}
+  .tips{background:#1B2410;border-color:#34461A} .tip{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#E3E8D8;margin-top:10px} .tip b{font-family:'Space Grotesk',sans-serif;color:var(--accent)}
+  .seg{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap} .seg button{min-height:36px;padding:0 12px;border-radius:18px;border:1px solid #2A2F35;background:transparent;font-size:12px;cursor:pointer} .seg button[aria-pressed=true]{background:var(--accent);color:#0E1013;border-color:var(--accent);font-weight:700}
+  .chart{display:block;width:100%;height:auto;margin-top:8px} .chart-l{display:grid;font-size:10px;color:var(--muted);text-align:center;margin-top:2px}
   dialog input[type=text]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px}
   dialog .help{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#2A2F35;color:var(--ink);padding:10px 16px;border-radius:12px;font-size:13px;z-index:10;max-width:90%;text-align:center}
@@ -134,6 +151,19 @@
     <label for="cfg-key">Clé secrète</label>
     <input type="text" id="cfg-key" autocomplete="off" spellcheck="false" placeholder="donnée par etape3_installer">
     <p class="help">Une fois rempli, l'appli récupère tes nouvelles activités Strava à chaque ouverture. Laissé vide : le bouton ↻ ouvre le sélecteur de fichiers du téléphone.</p>
+    <fieldset>
+      <legend>Mon objectif</legend>
+      <label for="g-name">Course</label>
+      <input type="text" id="g-name" placeholder="Semi-marathon de Paris">
+      <div class="two">
+        <div><label for="g-date">Date</label><input type="date" id="g-date"></div>
+        <div><label for="g-target">Temps visé</label><input type="text" id="g-target" placeholder="1:45:00" inputmode="numeric"></div>
+      </div>
+      <div class="two">
+        <div><label for="g-km">Distance (km)</label><input type="number" id="g-km" step="0.001" min="1" placeholder="21.1"></div>
+        <div><label for="g-sessions">Sorties / semaine</label><input type="number" id="g-sessions" min="1" max="14" placeholder="5"></div>
+      </div>
+    </fieldset>
     <div class="btns" style="justify-content:flex-start;margin-top:18px">
       <button class="btn" value="save" id="cfg-save">Enregistrer</button>
       <button class="btn ghost" type="button" id="cfg-import">Importer un fichier</button>
@@ -148,7 +178,7 @@
 <script>
 (() => {
   'use strict';
-  const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2';
+  const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
     ef:    { label: 'Endurance', color: 'var(--ef)' },
@@ -267,11 +297,13 @@
 
   // ---------- settings ----------
   $('#btn-sync').addEventListener('click', onSync);
-  $('#btn-settings').addEventListener('click', () => { const c = cfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#settings').showModal(); });
+  $('#btn-settings').addEventListener('click', () => { const c = cfg(), g = goalCfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#g-name').value = g.name || ''; $('#g-date').value = g.date || ''; $('#g-target').value = g.target || ''; $('#g-km').value = g.km || ''; $('#g-sessions').value = g.sessions || ''; $('#settings').showModal(); });
   $('#cfg-save').addEventListener('click', () => {
     const url = $('#cfg-url').value.trim(), key = $('#cfg-key').value.trim();
     if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast("L'adresse doit commencer par https://script.google.com/"); return; }
     localStorage.setItem(LS_CFG, JSON.stringify({ url, key }));
+    localStorage.setItem(LS_GOAL, JSON.stringify({ name: $('#g-name').value.trim(), date: $('#g-date').value, target: $('#g-target').value.trim(), km: $('#g-km').value, sessions: $('#g-sessions').value }));
+    render();
     toast('Réglages enregistrés'); if (url && key) setTimeout(() => syncRemote(false), 300);
   });
   $('#cfg-import').addEventListener('click', () => { $('#settings').close(); $('#file-input').click(); });
@@ -308,59 +340,212 @@
     return `<div class="act"><div class="tag" style="background:${CAT[a.cat].color}"></div><div class="main"><div class="name">${esc(a.name)}${a.race ? ' 🏁' : ''}</div><div class="meta">${esc(meta)}${a.suspect ? ' · <span style="color:var(--warn-ic)">GPS suspect</span>' : ''}</div></div><div class="when">${esc(relDay(a.date, now))}<br>${esc(CAT[a.cat].label)}</div></div>`;
   }
 
-  function viewCockpit(now) {
-    const acts = DATA.acts;
-    const weeks = weeklyRunKm(acts, now, 7);
-    const max = Math.max(...weeks.map((w) => w.km), 1);
-    const last = weeks[weeks.length - 2], ref = weeks[weeks.length - 5];
-    const cols = `grid-template-columns:repeat(${weeks.length},minmax(0,1fr))`;
-    const bars = weeks.map((w, i) => `<div class="bar ${w.current ? 'cur' : i === weeks.length - 2 ? 'last' : ''}"><span>${fr0(w.km)}</span><div style="height:${Math.max(3, Math.round((w.km / max) * 100))}px"></div></div>`).join('');
-    let alert = '';
-    if (ref && ref.km > 0) {
-      const ramp = (last.km - ref.km) / ref.km;
-      alert = ramp > 0.3
-        ? `<div class="alert warn">${svgWarn}<span>+${fr0(ramp * 100)} % de volume en 3 semaines (${fr1(ref.km)} → ${fr1(last.km)} km). Une semaine allégée serait prudente.</span></div>`
-        : `<div class="alert ok">${svgOk}<span>Progression maîtrisée : ${ramp >= 0 ? '+' : ''}${fr0(ramp * 100)} % en 3 semaines.</span></div>`;
+  // ---------- objectif ----------
+  function goalCfg() { try { return JSON.parse(localStorage.getItem(LS_GOAL)) || {}; } catch { return {}; } }
+  function parseTime(t) {
+    const m = String(t || '').match(/(\d+)\s*[h:]\s*(\d{1,2})(?:\s*[:m']\s*(\d{1,2}))?/i);
+    if (!m) return null;
+    const a = +m[1], b = +m[2], c = +(m[3] || 0);
+    return a <= 9 ? a * 3600 + b * 60 + c : a * 60 + b; // « 1:45 » = 1 h 45 ; « 45:30 » = 45 min 30
+  }
+  function goal() {
+    const g = goalCfg(), nr = (DATA && DATA.next_race) || {};
+    const name = g.name || nr.name || '';
+    const date = g.date || nr.date || '';
+    const targetSec = parseTime(g.target || nr.goal);
+    let km = parseFloat(g.km || nr.km) || null;
+    if (!km) km = /marathon/i.test(name) ? (/semi|half/i.test(name) ? 21.0975 : 42.195) : (/10\s*k/i.test(name) ? 10 : null);
+    return { name, date: date ? new Date(date + 'T09:00:00') : null, targetSec, km, sessions: +(g.sessions || nr.sessions) || 5 };
+  }
+
+  // ---------- charge (forme du jour) ----------
+  const LOAD_PER_MIN = { ef: 1.3, tempo: 1.9, frac: 1.8, trail: 3.0, muscu: 0.15, autre: 0.6 };
+  const loadOf = (a) => (a.re != null ? +a.re : (a.sec / 60) * (LOAD_PER_MIN[a.cat] || 1));
+  function forme(acts, now) {
+    const oldest = acts.length ? acts[acts.length - 1].date : now;
+    if (now - oldest < 21 * DAY) return null;
+    const w7 = inWindow(acts, now, 7), w28 = inWindow(acts, now, 28);
+    const l7 = sum(w7, loadOf), chronic = sum(w28, loadOf) / 4;
+    if (!chronic) return null;
+    const top = w7.slice().sort((x, y) => loadOf(y) - loadOf(x))[0];
+    return { ratio: l7 / chronic, l7, chronic, top, topShare: top ? loadOf(top) / l7 : 0 };
+  }
+  const ZONES = [
+    { to: 0.8, label: 'Sous-charge', state: 'En réserve', color: '#3A5A7A', text: '#8FB3FF' },
+    { to: 1.3, label: 'Optimal', state: 'En forme', color: '#4E7A2E', text: '#A8E6B8' },
+    { to: 1.5, label: 'Élevée', state: 'Charge élevée', color: '#B08A2A', text: '#FFD27A' },
+    { to: 2.0, label: 'Surcharge', state: 'À récupérer', color: '#B5532E', text: '#FF9B6A' }
+  ];
+
+  // ---------- séries hebdo pour la progression ----------
+  function weeklySeries(acts, now, n, metric) {
+    const w0 = weekStart(now), out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const s0 = new Date(w0); s0.setDate(s0.getDate() - 7 * i); const e0 = new Date(s0); e0.setDate(e0.getDate() + 7);
+      const runs = acts.filter((a) => a.run && a.date >= s0 && a.date < e0);
+      let v = null;
+      if (metric === 'ef') { const ef = runs.filter((a) => a.cat === 'ef' && a.km && !a.race); v = paceOf(ef); }
+      if (metric === 'hr') { const ef = runs.filter((a) => a.cat === 'ef' && a.km && !a.race && a.hr > 0); const t = sum(ef, (a) => a.sec); v = t ? sum(ef, (a) => ((a.km * 1000) / (a.sec / 60) / a.hr) * a.sec) / t : null; }
+      if (metric === 'cad') { const c = runs.filter((a) => a.cad > 0); const t = sum(c, (a) => a.sec); v = t ? sum(c, (a) => a.cad * 2 * a.sec) / t : null; }
+      out.push({ wk: isoWeek(s0), v });
     }
-    const r30 = inWindow(acts, now, 30).filter((a) => a.run), p30 = inWindow(acts, now, 60, 30).filter((a) => a.run);
-    const ef = paceOf(r30.filter((a) => a.cat === 'ef')), efPrev = paceOf(p30.filter((a) => a.cat === 'ef'));
-    const tp = r30.filter((a) => a.cat === 'tempo'), tempo = paceOf(tp), tempoPrev = paceOf(p30.filter((a) => a.cat === 'tempo'));
-    const cadRuns = r30.filter((a) => a.cad > 0);
-    const cad = cadRuns.length ? sum(cadRuns, (a) => a.cad * 2 * a.sec) / sum(cadRuns, (a) => a.sec) : null;
-    const runKm30 = sum(r30, (a) => a.km);
+    return out;
+  }
+  function lineChart(series, { invert = false, fmt = (v) => fr0(v) } = {}) {
+    const vals = series.map((x) => x.v).filter((v) => v != null);
+    const cols = `grid-template-columns:repeat(${series.length},minmax(0,1fr))`;
+    const labels = `<div class="chart-l" style="${cols}">${series.map((x) => `<span>S${x.wk}</span>`).join('')}</div>`;
+    if (vals.length < 2) return `<p class="small" style="margin:14px 0">Pas encore assez de données pour tracer une courbe.</p>`;
+    const W = 360, H = 112, top = 16, bot = 92, padX = W / series.length / 2;
+    let min = Math.min(...vals), max = Math.max(...vals); if (max - min < 1e-6) { max += 1; min -= 1; }
+    const X = (i) => padX + (i * (W - 2 * padX)) / (series.length - 1);
+    const Y = (v) => { const t = (v - min) / (max - min); return invert ? top + t * (bot - top) : bot - t * (bot - top); };
+    const segs = []; let cur = [];
+    series.forEach((x, i) => { if (x.v == null) { if (cur.length) segs.push(cur); cur = []; } else cur.push(`${X(i).toFixed(1)},${Y(x.v).toFixed(1)}`); });
+    if (cur.length) segs.push(cur);
+    const best = invert ? min : max, worst = invert ? max : min;
+    const lastI = series.map((x) => x.v != null).lastIndexOf(true);
+    const dots = series.map((x, i) => x.v == null ? '' : `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.v).toFixed(1)}" r="${i === lastI ? 4.5 : 3}" fill="${i === lastI ? 'var(--accent)' : '#0E1013'}" stroke="var(--accent)" stroke-width="2"/>`).join('');
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((x) => `S${x.wk} ${x.v == null ? 'aucune donnée' : fmt(x.v)}`).join(', ')}">
+      <line x1="0" y1="${top}" x2="${W}" y2="${top}" stroke="#23282D" stroke-dasharray="3 4"/><line x1="0" y1="${bot}" x2="${W}" y2="${bot}" stroke="#23282D" stroke-dasharray="3 4"/>
+      <text x="${W}" y="${top - 5}" text-anchor="end" font-size="10" fill="#9AA3AB">${esc(fmt(best))}</text><text x="${W}" y="${bot + 14}" text-anchor="end" font-size="10" fill="#9AA3AB">${esc(fmt(worst))}</text>
+      ${segs.map((sg) => `<polyline points="${sg.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}${dots}</svg>${labels}`;
+  }
+  let PROG = 'ef';
+
+  function viewCockpit(now) {
+    const acts = DATA.acts, G = goal();
+    const parts = [];
+
+    // 1. Objectif
+    if (G.date && G.date >= startOfDay(now)) {
+      const days = Math.ceil((startOfDay(G.date) - startOfDay(now)) / DAY), weeks = Math.floor(days / 7);
+      const phases = [['Base', 99], ['Développement', 14], ['Spécifique', 8], ['Affûtage', 2]]; // semaines restantes au début de chaque phase (estimation)
+      let ph = 0; phases.forEach(([, w], i) => { if (weeks < w) ph = i; });
+      const rec = (DATA.records || []).find((r) => /semi/i.test(r.label));
+      const recAct = rec && acts.find((x) => String(x.id) === String(rec.activity_id));
+      const goalPace = G.targetSec && G.km ? G.targetSec / G.km : null;
+      parts.push(`<section class="card">
+        <div class="row" style="align-items:flex-start"><div><div class="small" style="text-transform:uppercase;letter-spacing:.08em">Objectif</div><div style="font-size:18px;font-weight:700;margin-top:3px">${esc(G.name || 'Ma course')}</div><div class="small" style="color:var(--soft);margin-top:2px">${esc(G.date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }))}</div></div>
+        <div style="text-align:right"><div class="num" style="font-size:34px;line-height:1;color:var(--accent)">J-${days}</div><div class="small">${weeks} semaine${weeks > 1 ? 's' : ''}</div></div></div>
+        <div class="phase">${phases.map((_, i) => `<div class="${i < ph ? 'done' : i === ph ? 'on' : ''}"></div>`).join('')}</div>
+        <div class="phase-l">${phases.map(([n], i) => `<span class="${i === ph ? 'on' : ''}">${n}</span>`).join('')}</div>
+        <div class="grid4" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+          <div><div class="small">Temps visé</div><div class="num" style="font-size:20px">${G.targetSec ? hms(G.targetSec) : '–'}</div></div>
+          <div><div class="small">Allure cible</div><div class="num" style="font-size:20px">${goalPace ? pace(goalPace) : '–'}</div></div>
+          <div><div class="small">Record actuel</div><div class="num" style="font-size:20px">${rec && !(recAct && recAct.suspect) ? hms(rec.sec) : '–'}</div></div>
+        </div>
+        <p class="small" style="margin:10px 0 0">Phases estimées d'après la date de course.</p>
+      </section>`);
+    } else {
+      parts.push(`<section class="card" style="border-style:dashed"><div class="small">Objectif</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Renseigne ta prochaine course et ton temps visé dans ⚙ Réglages.</p></section>`);
+    }
+
+    // 2. Forme du jour
+    const F = forme(acts, now);
+    if (F) {
+      const zi = ZONES.findIndex((z) => F.ratio < z.to), Z = ZONES[zi === -1 ? 3 : zi];
+      const widths = [0.8, 0.5, 0.2, 0.5];
+      const pos = Math.min(F.ratio, 1.98) / 2 * 100;
+      let txt;
+      if (F.ratio >= 1.3 && F.top && F.topShare > 0.35) {
+        const out = new Date(startOfDay(F.top.date).getTime() + 7 * DAY);
+        txt = `« ${esc(F.top.name)} » (effort ${fr0(loadOf(F.top))}) pèse lourd sur 7 jours : ${fr0(F.l7)} contre ${fr0(F.chronic)} en moyenne. Il sortira du calcul ${esc(out.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric' }))} : d'ici là, privilégie l'endurance.`;
+      } else if (F.ratio >= 1.3) txt = `Charge des 7 derniers jours (${fr0(F.l7)}) nettement au-dessus de ta moyenne (${fr0(F.chronic)}). Lève le pied quelques jours.`;
+      else if (F.ratio < 0.8) txt = `Charge basse (${fr0(F.l7)} contre ${fr0(F.chronic)} en moyenne) : tu as de la réserve pour une séance de qualité.`;
+      else txt = `Charge bien dosée : ${fr0(F.l7)} sur 7 jours pour ${fr0(F.chronic)} en moyenne.`;
+      parts.push(`<section class="card">
+        <div class="row"><span class="label">Forme du jour</span><span class="small">charge 7 j / moy. 4 sem.</span></div>
+        <div class="row" style="justify-content:flex-start;gap:10px;margin-top:8px"><span class="num" style="font-size:30px;color:${Z.text}">${Z.state}</span><span class="num" style="font-size:18px;color:var(--soft)">${fr1(F.ratio)}</span></div>
+        <div class="gauge"><div class="z">${ZONES.map((z, i) => `<div style="width:${widths[i] / 2 * 100}%;background:${z.color}"></div>`).join('')}</div><div class="m" style="left:${pos}%"></div></div>
+        <div class="gauge-l" style="grid-template-columns:${widths.map((w) => w + 'fr').join(' ')}">${ZONES.map((z) => `<span>${z.label}</span>`).join('')}</div>
+        <p style="margin:12px 0 0;font-size:13px;line-height:1.45;color:var(--soft)">${txt}</p>
+      </section>`);
+    }
+
+    // 3. Ma semaine
+    const ws = weekStart(now), today = startOfDay(now).getTime();
+    const runsOf = (s0) => { const e0 = new Date(s0.getTime() + 7 * DAY); return acts.filter((a) => a.run && a.date >= s0 && a.date < e0); };
+    const thisRuns = runsOf(ws), thisMuscu = acts.filter((a) => a.cat === 'muscu' && a.date >= ws);
+    const done = thisRuns.length, goalN = G.sessions;
+    const C = 2 * Math.PI * 23, frac = Math.min(1, done / goalN);
+    const dayCells = ['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((l, i) => {
+      const d0 = new Date(ws.getTime() + i * DAY), d1 = new Date(d0.getTime() + DAY);
+      const r = acts.filter((a) => a.run && a.date >= d0 && a.date < d1), m = acts.some((a) => a.cat === 'muscu' && a.date >= d0 && a.date < d1);
+      const isToday = d0.getTime() === today, future = d0.getTime() > today;
+      let b;
+      if (r.length) b = `<div class="b" style="background:${CAT[r[0].cat].color}" title="${esc(r.map((x) => x.name).join(' + '))}">${fr0(sum(r, (x) => x.km))}</div>`;
+      else if (future || isToday) b = `<div class="b todo"></div>`;
+      else b = `<div class="b rest">–</div>`;
+      return `<div class="day ${isToday ? 'today' : ''}"><span class="l">${l}</span>${b}<span class="mu ${m ? 'on' : ''}"></span></div>`;
+    }).join('');
+    const hist = [1, 2, 3].map((k) => { const s0 = new Date(ws.getTime() - 7 * k * DAY); const n = runsOf(s0).length; return `S${isoWeek(s0)} : ${n}/${goalN}${n >= goalN ? ' ✓' : ''}`; });
+    let streak = 0; for (let k = 1; k <= 52; k++) { if (runsOf(new Date(ws.getTime() - 7 * k * DAY)).length >= goalN) streak++; else break; }
+    parts.push(`<section class="card">
+      <div class="row" style="align-items:center"><div><div class="label">Ma semaine</div><div style="font-size:15px;font-weight:600;margin-top:2px">${done} / ${goalN} entraînements${thisMuscu.length ? ` <span style="color:var(--muted);font-weight:400">· +${thisMuscu.length} muscu</span>` : ''}</div></div>
+      <svg width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="${done} entraînements sur ${goalN}"><circle cx="28" cy="28" r="23" fill="none" stroke="#2C3238" stroke-width="6"/>${done ? `<circle cx="28" cy="28" r="23" fill="none" stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-dasharray="${(C * frac).toFixed(1)} ${C.toFixed(1)}" transform="rotate(-90 28 28)"/>` : ''}<text x="28" y="33" text-anchor="middle" font-family="Space Grotesk, sans-serif" font-size="15" font-weight="700" fill="#F2F4F5">${done}/${goalN}</text></svg></div>
+      <div class="days">${dayCells}</div>
+      <div class="row" style="border-top:1px solid var(--line);margin-top:12px;padding-top:10px;font-size:12px;color:var(--muted)"><span>${hist.join(' · ')}</span>${streak >= 2 ? `<span style="color:var(--accent);white-space:nowrap">${streak} sem. d'affilée</span>` : ''}</div>
+    </section>`);
+
+    // 4. Conseils du jour
+    const tips = [];
+    if (F && F.ratio >= 1.5) tips.push('Charge élevée : si Garmin Coach propose une séance intense, garde-la en endurance ou décale-la de 1 à 2 jours.');
+    const hard = thisRuns.filter((a) => ['tempo', 'frac', 'trail'].includes(a.cat)).length;
+    if (hard >= 2) tips.push(`Déjà ${hard} séances intenses cette semaine : la prochaine en endurance fondamentale.`);
+    const daysLeft = 7 - Math.round((today - ws.getTime()) / DAY) - (thisRuns.some((a) => startOfDay(a.date).getTime() === today) ? 1 : 0);
+    if (done < goalN && goalN - done > daysLeft) tips.push(`Il reste ${goalN - done} entraînements pour ${daysLeft} jour${daysLeft > 1 ? 's' : ''} : mieux vaut une semaine à ${done + daysLeft} que deux séances le même jour.`);
+    if (F && F.ratio < 0.8 && hard === 0) tips.push('Tu as de la réserve : bon moment pour la séance de qualité de la semaine.');
+    const legs = acts.find((a) => a.cat === 'muscu' && a.groups.includes('Jambes'));
+    const legsAgo = legs ? Math.floor((now - legs.date) / DAY) : null;
+    if (acts.some((a) => a.cat === 'muscu') && (legsAgo == null || legsAgo > 14)) tips.push(`${legsAgo == null ? 'Aucune séance jambes enregistrée' : `Dernière séance jambes il y a ${legsAgo} jours`}. Pour ${G.name ? 'le ' + esc(G.name.replace(/^le\s+/i, '')) : 'courir plus vite'}, une séance squats/fentes/mollets par semaine aide à tenir les derniers km.`);
+    const r30 = inWindow(acts, now, 30).filter((a) => a.run && a.cad > 0);
+    const cad = r30.length ? sum(r30, (a) => a.cad * 2 * a.sec) / sum(r30, (a) => a.sec) : null;
+    if (tips.length < 3 && cad && cad < 160) tips.push(`Cadence moyenne ${fr0(cad)} pas/min : en endurance, essaie des pas un peu plus courts et rapides (viser 160-165).`);
+    if (tips.length) parts.push(`<section class="card tips"><div style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/></svg><span style="font-size:13px;font-weight:700;color:var(--accent)">Conseils du jour</span></div>
+      ${tips.slice(0, 3).map((t, i) => `<div class="tip"><b>${i + 1}</b><span>${t}</span></div>`).join('')}
+      <p class="small" style="margin:10px 0 0;color:#8E9A7E">Règles simples calculées sur tes données, pas un avis médical.</p></section>`);
+
+    // 5. Progression
+    const metrics = { ef: { label: 'Allure EF', invert: true, fmt: (v) => pace(v), unit: '/km' }, hr: { label: 'EF à FC égale', invert: false, fmt: (v) => v.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), unit: 'm / battement' }, cad: { label: 'Cadence', invert: false, fmt: (v) => fr0(v), unit: 'pas/min' } };
+    const M = metrics[PROG], ser = weeklySeries(acts, now, 8, PROG);
+    const lastV = [...ser].reverse().find((x) => x.v != null);
+    const valid = ser.filter((x) => x.v != null), bestV = valid.length ? valid.reduce((b, x) => ((M.invert ? x.v < b.v : x.v > b.v) ? x : b)) : null;
+    const help = { ef: 'Allure moyenne de tes sorties en endurance. Les sorties accompagnées la ralentissent : « EF à FC égale » corrige ce biais.', hr: 'Mètres parcourus par battement de cœur en endurance : plus c\'est haut, plus ton moteur aérobie progresse.', cad: 'Pas par minute, toutes sorties confondues.' }[PROG];
+    parts.push(`<section class="card">
+      <div class="row"><span class="label">Est-ce que je progresse ?</span><span class="small">8 semaines</span></div>
+      <div class="seg" role="group" aria-label="Indicateur">${Object.entries(metrics).map(([k, m]) => `<button data-prog="${k}" aria-pressed="${PROG === k}">${m.label}</button>`).join('')}</div>
+      ${lastV ? `<div class="row" style="justify-content:flex-start;gap:8px;margin-top:10px"><span class="num" style="font-size:30px">${esc(M.fmt(lastV.v))}</span><span style="font-size:13px;color:var(--soft)">${M.unit} · S${lastV.wk}${bestV && bestV !== lastV ? ` · meilleure : ${esc(M.fmt(bestV.v))} (S${bestV.wk})` : ''}</span></div>` : ''}
+      ${PROG === 'hr' && valid.length < 2 ? `<p class="small" style="margin:14px 0">Pas encore assez de sorties avec cardio. Lance <b>recupererCardio</b> une fois dans ton script Google pour remplir l'historique.</p>` : lineChart(ser, M)}
+      <p class="small" style="margin:8px 0 0">${help}</p>
+    </section>`);
+
+    // 6. Volume
+    const weeks = weeklyRunKm(acts, now, 7), vmax = Math.max(...weeks.map((w) => w.km), 1), last = weeks[weeks.length - 2];
+    const cols = `grid-template-columns:repeat(${weeks.length},minmax(0,1fr))`;
+    parts.push(`<section class="card">
+      <div class="row"><span class="label">Volume course</span><span style="font-size:13px"><b class="num">${fr1(last.km)} km</b> <span style="color:var(--muted)">sem. ${last.wk} · ${fr0(last.dplus)} m D+</span></span></div>
+      <div class="bars" style="${cols};height:84px" role="img" aria-label="Kilomètres par semaine : ${weeks.map((w) => `S${w.wk} ${fr1(w.km)}`).join(', ')}">${weeks.map((w, i) => `<div class="bar ${w.current ? 'cur' : i === weeks.length - 2 ? 'last' : ''}"><span>${fr0(w.km)}</span><div style="height:${Math.max(3, Math.round((w.km / vmax) * 60))}px"></div></div>`).join('')}</div>
+      <div class="xlabels" style="${cols}">${weeks.map((w) => `<span>S${w.wk}</span>`).join('')}</div>
+    </section>`);
+
+    // 7. Dernière activité
+    const la = acts[0];
+    if (la) parts.push(`<section class="card"><div class="small">Dernière activité · ${esc(relDay(la.date, now))}</div>${actRow(la, now).replace('class="act"', 'class="act" style="border:none;padding-bottom:0"')}</section>`);
+
+    return parts.join('');
+  }
+
+  function intensitySplit(now) {
+    const r30 = inWindow(DATA.acts, now, 30).filter((a) => a.run), tot = sum(r30, (a) => a.km);
+    if (!tot) return '';
     const split = ['ef', 'tempo', 'frac', 'trail'].map((c) => ({ c, km: sum(r30.filter((a) => a.cat === c), (a) => a.km) })).filter((x) => x.km > 0);
-    const m30 = inWindow(acts, now, 30).filter((a) => a.cat === 'muscu');
-    const upper = m30.filter((a) => a.groups.some((g) => UPPER.includes(g))).length;
-    const back = m30.filter((a) => a.groups.includes('Dos')).length;
-    const legs = m30.filter((a) => a.groups.includes('Jambes')).length;
-    const mmax = Math.max(upper, back, legs, 1);
-    const hb = (n, c) => `<div class="hbar ${c ? '' : 'zero'}"><span class="n">${n}</span><div class="track"><div class="fill" style="width:${(c / mmax) * 100}%"></div></div><span class="c">${c}</span></div>`;
-    const lastAct = acts[0];
-    return `
-      <section class="card">
-        <div class="row"><span class="label">Volume course · 7 semaines</span><span class="small">km</span></div>
-        <div class="row" style="justify-content:flex-start;margin-top:8px"><span class="num big">${fr1(last.km)}</span><span style="font-size:14px;color:var(--soft)">km sem. ${last.wk} · ${last.count} sorties · ${fr0(last.dplus)} m D+</span></div>
-        <div class="bars" style="${cols}" role="img" aria-label="Kilomètres par semaine : ${weeks.map((w) => `S${w.wk} ${fr1(w.km)}`).join(', ')}">${bars}</div>
-        <div class="xlabels" style="${cols}">${weeks.map((w) => `<span>S${w.wk}</span>`).join('')}</div>
-        ${alert}
-      </section>
-      <section class="tiles">
-        <div class="tile"><span class="t">Allure EF · 30 j</span><span class="num v">${pace(ef)}</span><span class="t">/km · ${esc(trend(ef, efPrev) || '—')}</span></div>
-        <div class="tile"><span class="t">Allure tempo · 30 j</span><span class="num v">${pace(tempo)}</span><span class="t">/km · ${tp.length} séance${tp.length > 1 ? 's' : ''}</span></div>
-        <div class="tile"><span class="t">Cadence · 30 j</span><span class="num v">${cad ? fr0(cad) : '–'}</span><span class="t">pas/min</span></div>
-      </section>
-      <section class="card">
-        <div class="row"><span class="label">Intensités · 30 derniers jours</span><span class="num" style="font-size:16px">${fr0(runKm30)} km</span></div>
-        <div class="split">${split.map((x) => `<div style="width:${(x.km / runKm30) * 100}%;background:${CAT[x.c].color}"></div>`).join('')}</div>
-        <div class="legend">${split.map((x) => `<span><span class="dot" style="background:${CAT[x.c].color}"></span>${CAT[x.c].label} ${fr0((x.km / runKm30) * 100)} %</span>`).join('')}</div>
-        <p class="small" style="margin:10px 0 0">Classement d'après le nom de la séance, sinon d'après l'allure.</p>
-      </section>
-      <section class="card">
-        <div class="row"><span class="label">Muscu · 30 derniers jours</span><span class="num" style="font-size:18px">${m30.length} séance${m30.length > 1 ? 's' : ''}</span></div>
-        <div class="stack" style="gap:8px;margin-top:12px">${hb('Haut du corps', upper)}${hb('Dos', back)}${hb('Jambes', legs)}</div>
-      </section>
-      ${lastAct ? `<section class="card"><div class="small">Dernière activité · ${esc(relDay(lastAct.date, now))}</div>${actRow(lastAct, now).replace('class="act"', 'class="act" style="border:none;padding-bottom:0"')}</section>` : ''}
-    `;
+    return `<section class="card">
+      <div class="row"><span class="label">Intensités · 30 derniers jours</span><span class="num" style="font-size:16px">${fr0(tot)} km</span></div>
+      <div class="split">${split.map((x) => `<div style="width:${(x.km / tot) * 100}%;background:${CAT[x.c].color}"></div>`).join('')}</div>
+      <div class="legend">${split.map((x) => `<span><span class="dot" style="background:${CAT[x.c].color}"></span>${CAT[x.c].label} ${fr0((x.km / tot) * 100)} %</span>`).join('')}</div>
+      <p class="small" style="margin:10px 0 0">Classement d'après le nom de la séance, sinon d'après l'allure.</p>
+    </section>`;
   }
 
   function viewEntrainement(now) {
@@ -377,6 +562,7 @@
         <div class="tile"><span class="t">Sorties</span><span class="num v">${r28.length}</span><span class="t">en 4 semaines</span></div>
         <div class="tile"><span class="t">Dénivelé</span><span class="num v">${fr0(sum(r28, (a) => a.dplus))}</span><span class="t">m D+</span></div>
       </section>
+      ${intensitySplit(now)}
       <section>${[...groups.entries()].map(([k, arr]) => { const s = new Date(k); const km = sum(arr.filter((a) => a.run), (a) => a.km); return `<div class="week-h"><span>Semaine ${isoWeek(s)} · ${dShort(s)}</span><span>${km ? fr1(km) + ' km' : ''}</span></div><div class="card" style="padding:0 16px">${arr.map((a) => actRow(a, now)).join('')}</div>`; }).join('') || '<p class="small">Aucune activité pour ce filtre.</p>'}</section>
     `;
   }
@@ -476,6 +662,7 @@
     v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
     if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
     v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+    v.querySelectorAll('[data-prog]').forEach((b) => b.addEventListener('click', () => { PROG = b.dataset.prog; const y = window.scrollY; render(); window.scrollTo(0, y); }));
   }
 
   // ---------- appli installable ----------
