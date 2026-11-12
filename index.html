@@ -197,7 +197,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · muscu';
+  const APP_VERSION = '2026-11-12 · sans jambes';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -539,9 +539,6 @@
     const daysLeft = 7 - Math.round((today - ws.getTime()) / DAY) - (thisRuns.some((a) => startOfDay(a.date).getTime() === today) ? 1 : 0);
     if (done < goalN && goalN - done > daysLeft) tips.push(`Il reste ${goalN - done} entraînements pour ${daysLeft} jour${daysLeft > 1 ? 's' : ''} : mieux vaut une semaine à ${done + daysLeft} que deux séances le même jour.`);
     if (F && F.ratio < 0.8 && hard === 0) tips.push('Tu as de la réserve : bon moment pour la séance de qualité de la semaine.');
-    const legs = acts.find((a) => a.cat === 'muscu' && a.groups.includes('Jambes'));
-    const legsAgo = legs ? Math.floor((now - legs.date) / DAY) : null;
-    if (acts.some((a) => a.cat === 'muscu') && (legsAgo == null || legsAgo > 14)) tips.push(`${legsAgo == null ? 'Aucune séance jambes enregistrée' : `Dernière séance jambes il y a ${legsAgo} jours`}. Pour ${G.name ? 'le ' + esc(G.name.replace(/^le\s+/i, '')) : 'courir plus vite'}, une séance squats/fentes/mollets par semaine aide à tenir les derniers km.`);
     const r30 = inWindow(acts, now, 30).filter((a) => a.run && a.cad > 0);
     const cad = r30.length ? sum(r30, (a) => a.cad * 2 * a.sec) / sum(r30, (a) => a.sec) : null;
     const PI2 = planInfo(G, now);
@@ -677,7 +674,8 @@
   const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
     Abdominals: 'Abdos', Obliques: 'Abdos', Core: 'Abdos', Forearms: 'Avant-bras', Quadriceps: 'Jambes', Hamstrings: 'Jambes', Glutes: 'Jambes', Calves: 'Jambes', Adductors: 'Jambes', Abductors: 'Jambes', 'Hip Flexors': 'Jambes', Legs: 'Jambes' };
-  const MUSCLE_ORDER = ['Pectoraux', 'Épaules', 'Dos', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos', 'Jambes'];
+  // Jambes volontairement absentes : séances au poids du corps à la maison, non enregistrées par la montre
+  const MUSCLE_ORDER = ['Pectoraux', 'Épaules', 'Dos', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos'];
   const e1rm = (kg, r) => (kg > 0 && r > 0 && r <= 15 ? kg * (1 + r / 30) : null);
   const BODYWEIGHT = /dip|pull.?up|chin.?up|push.?up|knee raise|leg raise|plank|crunch|sit.?up/i;
   const ISOLATION = /fly|crossover|raise|curl|pushdown|pressdown|extension|skull|kickback|shrug|calf/i;
@@ -821,14 +819,6 @@
         ${recs.map((r) => `<div class="act"><div class="main"><div class="name">${esc(exoFr(r.e))}</div><div class="meta">${kgTxt(r.b.best.kg, r.e)} × ${r.b.best.r} · ${dd(r.b.date)}</div></div><span class="num" style="font-size:18px">${fr0(r.b.best.v)} kg</span></div>`).join('')}</section>`);
     }
 
-    // 6. Jambes
-    const legs = MUSCLE_ORDER.includes('Jambes') ? L['Jambes'] : null;
-    if (legs && legs.p === 0) {
-      const lastLeg = all.find((Sx) => Sx.exos.some((x) => ((DATA.exercises || {})[x.e] || []).some((m) => MUSCLE_FR[m] === 'Jambes')));
-      const G = goal();
-      parts.push(`<section class="card" style="background:#2A1414;border-color:#4A2222"><div style="font-size:13px;font-weight:700;color:#FF9B8A">${lastLeg ? `Dernière séance jambes le ${dd(lastLeg.date)}` : 'Aucune série jambes enregistrée'}</div><p style="margin:6px 0 0;font-size:14px;line-height:1.45;color:#F0DCD8">${G.name ? `Pour ${esc(G.name.replace(/^le\s+/i, 'le '))}, une` : 'Une'} séance jambes par semaine (squat ou presse, fentes, mollets, gainage) aide à garder une bonne foulée en fin de course. À caler loin des séances de qualité de Garmin Coach.</p></section>`);
-    }
-
     // 7. Régularité
     const wks = []; for (let i = 8; i >= 0; i--) { const s0 = new Date(ws.getTime() - 7 * i * DAY), e0 = new Date(s0.getTime() + 7 * DAY); wks.push({ wk: isoWeek(s0), n: DATA.acts.filter((a) => a.cat === 'muscu' && a.date >= s0 && a.date < e0).length, cur: i === 0 }); }
     const wmax = Math.max(...wks.map((w) => w.n), 1), cols = `grid-template-columns:repeat(${wks.length},minmax(0,1fr))`;
@@ -846,9 +836,8 @@
     const max = Math.max(...weeks.map((w) => w.n), 1);
     const cols = `grid-template-columns:repeat(${weeks.length},minmax(0,1fr))`;
     const m60 = inWindow(m, now, 60);
-    const counts = MUSCLE_GROUPS.map(([g]) => [g, m60.filter((a) => a.groups.includes(g)).length]);
+    const counts = MUSCLE_GROUPS.filter(([g]) => g !== 'Jambes').map(([g]) => [g, m60.filter((a) => a.groups.includes(g)).length]);
     const cmax = Math.max(...counts.map((c) => c[1]), 1);
-    const lastLegs = m.find((a) => a.groups.includes('Jambes'));
     const tot = sum(m60, (a) => a.sec);
     return `
       <section class="tiles">
@@ -864,7 +853,6 @@
       <section class="card">
         <span class="label">Groupes travaillés · 60 jours</span>
         <div class="stack" style="gap:8px;margin-top:12px">${counts.map(([g, c]) => `<div class="hbar ${c ? '' : 'zero'}"><span class="n">${g}</span><div class="track"><div class="fill" style="width:${(c / cmax) * 100}%;background:var(--muscu)"></div></div><span class="c">${c}</span></div>`).join('')}</div>
-        ${!lastLegs ? `<div class="alert warn">${svgWarn}<span>Aucune séance jambes enregistrée. Pour le trail, quadriceps et mollets encaissent les descentes.</span></div>` : ''}
         <p class="small" style="margin:10px 0 0">Groupes détectés dans le nom ou la description de la séance (ex. « jambes », « squat », « dos »).</p>
       </section>
       <section class="card" style="padding:0 16px">${m.slice(0, 20).map((a) => actRow(a, now)).join('') || '<p class="small">Aucune séance de muscu.</p>'}</section>
