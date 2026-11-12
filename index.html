@@ -188,6 +188,7 @@
       <button class="btn ghost" type="button" id="cfg-clear" style="color:var(--bad)">Effacer les données</button>
       <button class="btn ghost" value="cancel">Fermer</button>
     </div>
+    <p class="help" id="app-version" style="margin-top:14px;text-align:center"></p>
   </form>
 </dialog>
 
@@ -196,6 +197,7 @@
 <script>
 (() => {
   'use strict';
+  const APP_VERSION = '2026-11-12 · muscu';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -896,7 +898,14 @@
 
   // ---------- appli installable ----------
   if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch((e) => console.warn('SW', e)));
+    // Mise à jour automatique : on vérifie à chaque ouverture et on recharge quand une nouvelle version prend la main
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadController && !reloaded) { reloaded = true; location.reload(); } });
+    window.addEventListener('load', () => navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+      reg.update().catch(() => {});
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+    }).catch((e) => console.warn('SW', e)));
   }
   let installPrompt = null;
   window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); installPrompt = e; $('#btn-install').hidden = false; });
@@ -920,6 +929,7 @@
   }
   applySetup();
 
+  $('#app-version').textContent = 'Version ' + APP_VERSION;
   loadLocal();
   render();
   syncRemote.last = Date.now();
