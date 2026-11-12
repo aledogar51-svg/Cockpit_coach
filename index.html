@@ -93,6 +93,7 @@
   dialog input[type=date],dialog input[type=number]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px;color-scheme:dark}
   dialog fieldset{border:none;padding:0;margin:18px 0 0;border-top:1px solid var(--line)}
   dialog legend{font-size:14px;font-weight:700;padding:14px 0 0}
+  dialog input[readonly]{opacity:.55;border-style:dashed}
   .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .phase{display:flex;gap:3px;margin-top:12px} .phase>div{flex:1;height:6px;border-radius:3px;background:#2C3238;overflow:hidden} .phase>div.done{background:#5C6B2A} .phase .f{height:100%;background:var(--accent);border-radius:3px}
   .phase-l{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));font-size:11px;color:var(--muted);margin-top:6px} .phase-l span:last-child{text-align:right} .phase-l .on{color:var(--ink);font-weight:600}
@@ -150,8 +151,9 @@
 
 <dialog id="settings">
   <form method="dialog">
-    <h2 style="font-size:18px">Réglages</h2>
+    <h2 style="font-size:18px;outline:none" tabindex="-1" autofocus>Réglages</h2>
     <p class="help">Rien n'est stocké sur GitHub : ton adresse, ta clé et tes données restent uniquement sur ce téléphone.</p>
+    <div class="row" style="align-items:center;margin-top:14px"><span style="font-size:14px;font-weight:700">Connexion</span><button type="button" class="btn ghost" id="cfg-unlock" style="min-height:36px;padding:0 12px;font-size:12px">🔒 Modifier la connexion</button></div>
     <label for="cfg-url">Adresse de synchro (Apps Script)</label>
     <input type="text" id="cfg-url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec">
     <label for="cfg-key">Clé secrète</label>
@@ -197,7 +199,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · noms Strava FR';
+  const APP_VERSION = '2026-11-12 · connexion verrouillée';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -317,7 +319,14 @@
 
   // ---------- settings ----------
   $('#btn-sync').addEventListener('click', onSync);
-  $('#btn-settings').addEventListener('click', () => { const c = cfg(), g = goalCfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; $('#g-name').value = g.name || ''; $('#g-date').value = g.date || ''; $('#g-target').value = g.target || ''; $('#g-km').value = g.km || ''; $('#g-sessions').value = g.sessions || ''; const pl = g.plan || {}; $('#g-p-base').value = pl.base || ''; $('#g-p-build').value = pl.build || ''; $('#g-p-peak').value = pl.peak || ''; $('#g-p-taper').value = pl.taper || ''; $('#settings').showModal(); });
+  function lockConn(lock) {
+    ['#cfg-url', '#cfg-key'].forEach((id) => { $(id).readOnly = lock; });
+    $('#cfg-key').type = lock ? 'password' : 'text';
+    $('#cfg-unlock').textContent = lock ? '🔒 Modifier la connexion' : '🔓 Connexion modifiable';
+    $('#cfg-unlock').disabled = !lock;
+  }
+  $('#cfg-unlock').addEventListener('click', () => { lockConn(false); $('#cfg-url').focus(); });
+  $('#btn-settings').addEventListener('click', () => { const c = cfg(), g = goalCfg(); $('#cfg-url').value = c.url || ''; $('#cfg-key').value = c.key || ''; lockConn(!!(c.url && c.key)); $('#g-name').value = g.name || ''; $('#g-date').value = g.date || ''; $('#g-target').value = g.target || ''; $('#g-km').value = g.km || ''; $('#g-sessions').value = g.sessions || ''; const pl = g.plan || {}; $('#g-p-base').value = pl.base || ''; $('#g-p-build').value = pl.build || ''; $('#g-p-peak').value = pl.peak || ''; $('#g-p-taper').value = pl.taper || ''; $('#settings').showModal(); });
   $('#cfg-save').addEventListener('click', () => {
     const url = $('#cfg-url').value.trim(), key = $('#cfg-key').value.trim();
     if (url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)) { toast("L'adresse doit commencer par https://script.google.com/"); return; }
