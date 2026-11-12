@@ -153,6 +153,40 @@ function traiterRecords_(data, token, max) {
   return n;
 }
 
+// ---------------------------------------------------------------------
+// MUSCU : détail des séries déposé sur le Drive par la tâche de nuit de Claude
+// (l'API Strava ne permet pas de lire les séries : c'est Claude qui les récupère)
+// Fichiers attendus : « cockpit-muscu*.json » n'importe où dans le Drive, au format
+// { type: "cockpit-muscu", exercises: { "Bench Press": ["Chest","Triceps"] },
+//   workouts: [ { id: "123", date: "2026-11-12", sets: [["Bench Press", 60, 8, 5]] } ] }
+// sets = [exercice, charge kg (null = sans charge), répétitions, nombre de séries identiques]
+// ---------------------------------------------------------------------
+function integrerMuscu_(data) {
+  const it = DriveApp.searchFiles("title contains 'cockpit-muscu' and trashed = false");
+  const principal = idFichier_();
+  let n = 0;
+  while (it.hasNext()) {
+    const f = it.next();
+    if (f.getId() === principal || !/\.json$/i.test(f.getName())) continue;
+    let j;
+    try { j = JSON.parse(f.getBlob().getDataAsString('UTF-8')); } catch (e) { console.warn('Fichier muscu illisible : ' + f.getName()); continue; }
+    if (!j || j.type !== 'cockpit-muscu' || !Array.isArray(j.workouts)) continue;
+    data.exercises = Object.assign(data.exercises || {}, j.exercises || {});
+    data.muscu = data.muscu || {};
+    j.workouts.forEach(w => { if (w && w.id && Array.isArray(w.sets)) { data.muscu[String(w.id)] = { date: w.date || null, sets: w.sets }; n++; } });
+    f.setTrashed(true);
+  }
+  return n;
+}
+
+/** Optionnel : lance l'intégration des fichiers muscu tout de suite (sinon c'est fait à chaque synchro). */
+function integrerMuscu() {
+  const data = lireDonnees_();
+  const n = integrerMuscu_(data);
+  if (n) ecrireDonnees_(data);
+  Logger.log(n ? '💪 ' + n + ' séances de muscu intégrées (' + Object.keys(data.muscu).length + ' au total).' : 'Aucun fichier cockpit-muscu à intégrer.');
+}
+
 // Une fois par jour : retire les activités supprimées sur Strava (et relance les records si l'une d'elles en détenait un).
 function nettoyageQuotidien_(data, token) {
   const props = PropertiesService.getScriptProperties();
@@ -163,6 +197,7 @@ function nettoyageQuotidien_(data, token) {
   const retirees = data.activities.filter(a => !ids.has(String(a.id))).map(a => String(a.id));
   if (!retirees.length) return false;
   data.activities = data.activities.filter(a => ids.has(String(a.id)));
+  if (data.muscu) retirees.forEach(id => delete data.muscu[id]);
   if ((data.records || []).some(r => retirees.indexOf(String(r.activity_id)) >= 0)) lancerRecalculRecords_(data);
   return true;
 }
@@ -213,11 +248,12 @@ function synchroniser(options) {
     });
 
     data.activities = trier_([...index.values()]);
-    let menage = false, analysees = 0;
+    let menage = false, analysees = 0, muscu = 0;
+    try { muscu = integrerMuscu_(data); } catch (e) { console.warn(e); }
     try { menage = nettoyageQuotidien_(data, token); } catch (e) { console.warn(e); }
     if (!depuisAppli) { try { analysees = traiterRecords_(data, token, 20); } catch (e) { console.warn(e); } }
-    if (nouvelles || modifiees || menage || analysees) ecrireDonnees_(data);
-    return { statut: 'ok', recues: recues.length, nouvelles: nouvelles, modifiees: modifiees, records_en_attente: fileRecords_().length };
+    if (nouvelles || modifiees || menage || analysees || muscu) ecrireDonnees_(data);
+    return { statut: 'ok', recues: recues.length, nouvelles: nouvelles, modifiees: modifiees, records_en_attente: fileRecords_().length, muscu_integrees: muscu };
   } finally {
     lock.releaseLock();
   }

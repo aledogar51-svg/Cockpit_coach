@@ -45,6 +45,11 @@ Ensuite, chaque jour, le script retire tout seul les activités supprimées sur 
 
 **Objectif de course** : ⚙ Réglages → *Mon objectif* (course, date, temps visé, sorties par semaine). Ces infos restent sur le téléphone.
 
+## Muscu (détail des séries)
+L'API Strava ne permet pas de lire les séries de musculation. Claude les récupère via sa connexion Strava et dépose un fichier `cockpit-muscu*.json` sur le Drive (tâche planifiée chaque nuit). Le script l'intègre dans `cockpit-data.json` (clés `exercises` et `muscu`) à la synchro suivante, puis le met à la corbeille.
+Historique : déposer `cockpit-muscu-historique.json` n'importe où dans le Drive.
+Format : `{ type: "cockpit-muscu", exercises: { "Bench Press": ["Chest","Triceps","Shoulders"] }, workouts: [ { id, date, sets: [[exercice, kg|null, reps, nb_séries]] } ] }`
+
 ## Si je modifie le script plus tard
 *Déployer → Gérer les déploiements → ✏ → Version : Nouvelle version → Déployer* (l'URL ne change pas).
 

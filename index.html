@@ -107,6 +107,12 @@
   .tips{background:#1B2410;border-color:#34461A} .tip{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#E3E8D8;margin-top:10px} .tip b{font-family:'Space Grotesk',sans-serif;color:var(--accent)}
   .seg{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap} .seg button{min-height:36px;padding:0 12px;border-radius:18px;border:1px solid #2A2F35;background:transparent;font-size:12px;cursor:pointer} .seg button[aria-pressed=true]{background:var(--accent);color:#0E1013;border-color:var(--accent);font-weight:700}
   .chart{display:block;width:100%;height:auto;margin-top:8px} .chart-l{display:grid;font-size:10px;color:var(--muted);text-align:center;margin-top:2px}
+  .cmp{display:grid;grid-template-columns:minmax(0,1fr) 70px 54px;gap:2px 10px;align-items:center;padding:7px 0;border-bottom:1px solid #1F2328}
+  .cmp .h{font-size:11px;color:var(--muted)} .cmp .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+  .cmp .v{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700} .d{font-size:11px} .d.up{color:#A8E6B8} .d.down{color:#FF9B8A} .d.eq{color:var(--muted)} .d.new{color:var(--muscu)}
+  .verdicts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px} .verdicts div{border-radius:10px;padding:8px;text-align:center} .verdicts b{display:block;font-family:'Space Grotesk',sans-serif;font-size:18px} .verdicts span{font-size:11px;color:var(--muted)}
+  select.pick{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px;margin-top:10px}
+  .mbar{flex:1;position:relative;height:12px;background:var(--line);border-radius:6px;overflow:hidden} .mbar .zone{position:absolute;left:40%;width:40%;top:0;bottom:0;background:#26331C} .mbar .p{position:absolute;left:0;top:0;bottom:0} .mbar .s{position:absolute;top:0;bottom:0;background:#5C6B2A}
   dialog input[type=text]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px}
   dialog .help{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#2A2F35;color:var(--ink);padding:10px 16px;border-radius:12px;font-size:13px;z-index:10;max-width:90%;text-align:center}
@@ -427,7 +433,7 @@
   function lineChart(series, { invert = false, fmt = (v) => fr0(v) } = {}) {
     const vals = series.map((x) => x.v).filter((v) => v != null);
     const cols = `grid-template-columns:repeat(${series.length},minmax(0,1fr))`;
-    const labels = `<div class="chart-l" style="${cols}">${series.map((x) => `<span>S${x.wk}</span>`).join('')}</div>`;
+    const labels = `<div class="chart-l" style="${cols}">${series.map((x) => `<span>${esc(x.label || 'S' + x.wk)}</span>`).join('')}</div>`;
     if (vals.length < 2) return `<p class="small" style="margin:14px 0">Pas encore assez de données pour tracer une courbe.</p>`;
     const W = 360, H = 112, top = 16, bot = 92, padX = W / series.length / 2;
     let min = Math.min(...vals), max = Math.max(...vals); if (max - min < 1e-6) { max += 1; min -= 1; }
@@ -439,7 +445,7 @@
     const best = invert ? min : max, worst = invert ? max : min;
     const lastI = series.map((x) => x.v != null).lastIndexOf(true);
     const dots = series.map((x, i) => x.v == null ? '' : `<circle cx="${X(i).toFixed(1)}" cy="${Y(x.v).toFixed(1)}" r="${i === lastI ? 4.5 : 3}" fill="${i === lastI ? 'var(--accent)' : '#0E1013'}" stroke="var(--accent)" stroke-width="2"/>`).join('');
-    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((x) => `S${x.wk} ${x.v == null ? 'aucune donnée' : fmt(x.v)}`).join(', ')}">
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${series.map((x) => `${x.label || 'S' + x.wk} ${x.v == null ? 'aucune donnée' : fmt(x.v)}`).join(', ')}">
       <line x1="0" y1="${top}" x2="${W}" y2="${top}" stroke="#23282D" stroke-dasharray="3 4"/><line x1="0" y1="${bot}" x2="${W}" y2="${bot}" stroke="#23282D" stroke-dasharray="3 4"/>
       <text x="${W}" y="${top - 5}" text-anchor="end" font-size="10" fill="#9AA3AB">${esc(fmt(best))}</text><text x="${W}" y="${bot + 14}" text-anchor="end" font-size="10" fill="#9AA3AB">${esc(fmt(worst))}</text>
       ${segs.map((sg) => `<polyline points="${sg.join(' ')}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`).join('')}${dots}</svg>${labels}`;
@@ -648,7 +654,190 @@
     `;
   }
 
+  // ---------- MUSCU (détail des séries déposé par la tâche de nuit) ----------
+  const EXO_FR = {
+    'Bench Press': 'Développé couché', 'Dumbbell Bench Press': 'Développé couché haltères', 'Incline Barbell Bench Press': 'Développé incliné barre',
+    'Smith Machine Incline Bench Press': 'Développé incliné Smith', 'Close Grip Dumbbell Chest Press': 'Développé serré haltères', 'Machine Chest Press': 'Presse pectoraux machine',
+    'Machine Isolateral Chest Press': 'Presse pectoraux isolatérale', 'Machine Chest Fly': 'Butterfly machine', 'Low Cable Fly Crossovers': 'Écarté poulie basse', 'Cable Crossover': 'Écarté poulie vis-à-vis',
+    'Chest Dip': 'Dips', 'Front Raise': 'Élévations frontales', 'Barbell Upright Row': 'Tirage menton barre', 'Smith Machine Overhead Press': 'Développé militaire Smith',
+    'Machine Seated Shoulder Press': 'Développé épaules machine', 'Cable Rear Delt Reverse Fly': 'Oiseau poulie', 'Cable Rear Delt Fly': 'Oiseau poulie', 'Machine Rear Delt Reverse Fly': 'Oiseau machine',
+    'Lateral Raise': 'Élévations latérales', 'Dumbbell Lateral Raise': 'Élévations latérales', 'Reverse Grip Barbell Row': 'Rowing barre supination', 'Barbell Row': 'Rowing barre',
+    'Machine Single Arm Seated Row': 'Rowing unilatéral machine', 'Seated Cable Row': 'Tirage horizontal poulie', 'Close Grip Cable Lat Pulldown': 'Tirage vertical prise serrée',
+    'Lat Pulldown': 'Tirage vertical', 'Straight Arm Pulldown': 'Pull-over poulie bras tendus', 'Pull Up': 'Tractions', 'Pull-Up': 'Tractions',
+    '21s Bicep Curl': 'Curl 21', 'Ez Bar Preacher Curl': 'Curl pupitre barre EZ', 'Cable Biceps Curl': 'Curl poulie', 'Barbell Biceps Curl': 'Curl barre', 'Rope Cable Curl': 'Curl marteau corde',
+    'Standing Ez Bar Biceps Curl': 'Curl barre EZ debout', 'Hammer Curl': 'Curl marteau', 'Triceps Pressdown': 'Extension triceps poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps poulie',
+    'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral', 'Cable Overhead Triceps Extension': 'Extension triceps nuque poulie', 'Skull Crusher': 'Barre au front',
+    'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch',
+    'Squat': 'Squat', 'Barbell Back Squat': 'Squat barre', 'Goblet Squat': 'Goblet squat', 'Leg Press': 'Presse à cuisses', 'Lunge': 'Fentes', 'Walking Lunge': 'Fentes marchées',
+    'Bulgarian Split Squat': 'Squat bulgare', 'Romanian Deadlift': 'Soulevé de terre roumain', 'Deadlift': 'Soulevé de terre', 'Leg Extension': 'Leg extension', 'Leg Curl': 'Leg curl',
+    'Seated Leg Curl': 'Leg curl assis', 'Standing Calf Raise': 'Mollets debout', 'Seated Calf Raise': 'Mollets assis', 'Calf Raise': 'Mollets', 'Hip Thrust': 'Hip thrust', 'Step Up': 'Step-up'
+  };
+  const exoFr = (e) => EXO_FR[e] || e;
+  const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
+    Abdominals: 'Abdos', Obliques: 'Abdos', Core: 'Abdos', Forearms: 'Avant-bras', Quadriceps: 'Jambes', Hamstrings: 'Jambes', Glutes: 'Jambes', Calves: 'Jambes', Adductors: 'Jambes', Abductors: 'Jambes', 'Hip Flexors': 'Jambes', Legs: 'Jambes' };
+  const MUSCLE_ORDER = ['Pectoraux', 'Épaules', 'Dos', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos', 'Jambes'];
+  const e1rm = (kg, r) => (kg > 0 && r > 0 && r <= 15 ? kg * (1 + r / 30) : null);
+  const BODYWEIGHT = /dip|pull.?up|chin.?up|push.?up|knee raise|leg raise|plank|crunch|sit.?up/i;
+  const ISOLATION = /fly|crossover|raise|curl|pushdown|pressdown|extension|skull|kickback|shrug|calf/i;
+  const kgTxt = (v, e) => (v == null ? (e && BODYWEIGHT.test(e) ? 'PDC' : '–') : `${fr1(v)} kg`);
+  let MU_SESSION = null, MU_EXO = null;
+
+  // Séances de muscu avec détail, de la plus récente à la plus ancienne
+  function muscuSessions() {
+    const M = DATA.muscu || {}, byId = new Map(DATA.acts.map((a) => [String(a.id), a]));
+    return Object.entries(M).map(([id, w]) => {
+      const a = byId.get(id), date = a ? a.date : new Date((w.date || '1970-01-01') + 'T12:00:00');
+      const exos = new Map();
+      (w.sets || []).forEach(([e, kg, r, n]) => {
+        n = n || 1; kg = kg == null || +kg === 0 ? null : +kg; r = +r || 0;
+        if (!exos.has(e)) exos.set(e, { e, sets: 0, reps: 0, top: null, topReps: 0, best: null, vol: 0 });
+        const x = exos.get(e);
+        x.sets += n; x.reps += r * n; x.vol += (kg || 0) * r * n;
+        if (kg != null && (x.top == null || kg > x.top || (kg === x.top && r > x.topReps))) { x.top = kg; x.topReps = r; }
+        const est = e1rm(kg, r); if (est && (x.best == null || est > x.best.v)) x.best = { v: est, kg, r };
+      });
+      const list = [...exos.values()];
+      return { id, date, name: a ? a.name : 'Séance', dur: a ? a.sec : null, exos: list, sets: sum(list, (x) => x.sets), vol: sum(list, (x) => x.vol) };
+    }).filter((x) => !isNaN(x.date)).sort((x, y) => y.date - x.date);
+  }
+
+  // Séries par muscle : 1 pour le muscle principal, ½ pour chaque muscle secondaire
+  function muscleLoad(sessions) {
+    const EX = DATA.exercises || {}, out = {};
+    MUSCLE_ORDER.forEach((m) => (out[m] = { p: 0, s: 0 }));
+    sessions.forEach((S) => S.exos.forEach((x) => {
+      const ms = [...new Set((EX[x.e] || []).map((m) => MUSCLE_FR[m] || null).filter(Boolean))];
+      ms.forEach((m, i) => { if (!out[m]) out[m] = { p: 0, s: 0 }; if (i === 0) out[m].p += x.sets; else out[m].s += x.sets; });
+    }));
+    return out;
+  }
+  function pushPull(sessions) {
+    const EX = DATA.exercises || {}; let push = 0, pull = 0;
+    sessions.forEach((S) => S.exos.forEach((x) => {
+      const first = (EX[x.e] || [])[0];
+      if (/rear delt|reverse fly|row|pulldown|pull.?up|face pull/i.test(x.e) || ['Lats', 'Upper Back', 'Lower Back', 'Trapezius'].includes(first)) pull += x.sets;
+      else if (['Chest', 'Triceps'].includes(first) || (first === 'Shoulders' && /press/i.test(x.e))) push += x.sets;
+    }));
+    return { push, pull };
+  }
+  // Compare chaque exercice d'une séance à la dernière fois où il a été fait
+  function compareSession(S, all) {
+    return S.exos.map((x) => {
+      const prevS = all.find((P) => P.date < S.date && P.exos.some((y) => y.e === x.e));
+      const p = prevS && prevS.exos.find((y) => y.e === x.e);
+      let verdict = 'new';
+      if (p) {
+        const kgA = x.top ?? 0, kgB = p.top ?? 0;
+        if (kgA > kgB || (kgA === kgB && x.reps > p.reps)) verdict = 'up';
+        else if (kgA < kgB || (kgA === kgB && x.reps < p.reps)) verdict = 'down';
+        else verdict = 'eq';
+      }
+      return { x, p, prevS, verdict };
+    });
+  }
+  const delta = (a, b, unit) => {
+    const d = Math.round(((a ?? 0) - (b ?? 0)) * 10) / 10;
+    return d === 0 ? { t: '=', c: 'eq' } : { t: `${d > 0 ? '+' : '−'}${fr1(Math.abs(d))}${unit}`, c: d > 0 ? 'up' : 'down' };
+  };
+
   function viewMuscu(now) {
+    const all = muscuSessions();
+    if (!all.length) return `<section class="card" style="border-style:dashed"><div class="small">Détail des séances</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Le détail de tes séries (exercices, charges, répétitions) n'est pas encore arrivé. Dépose le fichier <b>cockpit-muscu-historique.json</b> sur ton Drive : il sera intégré à la prochaine synchro.</p></section>` + viewMuscuSimple(now);
+    const parts = [];
+    const ws = weekStart(now), week = all.filter((S) => S.date >= ws);
+    const last28 = all.filter((S) => S.date > new Date(now - 28 * DAY));
+
+    // 1. Cette semaine
+    parts.push(`<section class="tiles">
+      <div class="tile"><span class="t">Cette semaine</span><span class="num v">${week.length}</span><span class="t">séance${week.length > 1 ? 's' : ''}</span></div>
+      <div class="tile"><span class="t">Séries</span><span class="num v">${fr0(sum(week, (S) => S.sets))}</span><span class="t">cette semaine</span></div>
+      <div class="tile"><span class="t">Volume soulevé</span><span class="num v">${fr1(sum(week, (S) => S.vol) / 1000)} t</span><span class="t">charge × reps</span></div>
+    </section>`);
+
+    // 2. Équilibre musculaire (4 semaines)
+    const L = muscleLoad(last28), weeksN = 4, max = 25;
+    const rows = MUSCLE_ORDER.map((m) => {
+      const p = L[m].p / weeksN, sd = L[m].s / weeksN, tot = p + sd / 2;
+      const color = tot === 0 ? '#FF9B8A' : tot < 10 ? '#FFC24B' : 'var(--accent)';
+      return `<div class="hbar"><span class="n" style="${tot === 0 ? 'color:#FF9B8A;font-weight:600' : ''}">${m}</span><div class="mbar"><div class="zone"></div><div class="p" style="width:${Math.min(100, (p / max) * 100)}%;background:${tot === 0 ? 'transparent' : 'var(--accent)'}"></div><div class="s" style="left:${Math.min(100, (p / max) * 100)}%;width:${Math.min(100, (sd / 2 / max) * 100)}%"></div></div><span class="c num" style="color:${color};width:30px">${fr1(Math.round(tot * 2) / 2)}</span></div>`;
+    }).join('');
+    const PP = pushPull(last28), ratio = PP.pull ? PP.push / PP.pull : null;
+    parts.push(`<section class="card">
+      <div class="row"><span class="label">Équilibre musculaire</span><span class="small">séries / sem. · 4 dernières sem.</span></div>
+      <div class="stack" style="gap:9px;margin-top:12px">${rows}</div>
+      <div class="row small" style="padding:6px 30px 0 114px"><span>0</span><span style="color:#8FBF5A">zone utile 10–20</span><span>25</span></div>
+      <div class="legend" style="margin-top:8px"><span><span class="dot" style="background:var(--accent)"></span>Muscle principal</span><span><span class="dot" style="background:#5C6B2A"></span>Muscle secondaire (compte ½)</span></div>
+      ${ratio != null ? `<div style="display:flex;gap:12px;align-items:center;background:#1F1A28;border-radius:12px;padding:12px;margin-top:12px"><div style="text-align:center;min-width:74px"><div class="num" style="font-size:22px;color:${ratio > 1.5 ? '#FFB27A' : '#A8E6B8'}">${fr1(ratio)} : 1</div><div style="font-size:10px;color:var(--muted)">poussée : tirage</div></div><span style="font-size:13px;line-height:1.4;color:#D9D2E6">${ratio > 1.5 ? `Tu fais ${fr0(PP.push)} séries de poussée pour ${fr0(PP.pull)} de tirage. Viser plutôt 1 : 1 protège les épaules : ajoute du tirage (rowing, tirage vertical, oiseau).` : 'Poussée et tirage bien équilibrés.'}</span></div>` : ''}
+      <p class="small" style="margin:10px 0 0">Calculé exercice par exercice d'après les muscles que Strava associe à chaque mouvement.</p>
+    </section>`);
+
+    // 3. Est-ce que je progresse ? (comparaison avec la fois précédente)
+    if (!MU_SESSION || !all.some((S) => S.id === MU_SESSION)) MU_SESSION = all[0].id;
+    const S = all.find((x) => x.id === MU_SESSION), C = compareSession(S, all);
+    const count = (v) => C.filter((c) => c.verdict === v).length;
+    const dd = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    parts.push(`<section class="card">
+      <div class="row"><span class="label">Est-ce que je progresse ?</span><span class="small">vs la fois précédente</span></div>
+      <div class="seg" role="group" aria-label="Séance">${all.slice(0, 4).map((x) => `<button data-mus="${esc(x.id)}" aria-pressed="${x.id === S.id}">${esc(x.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' }))}</button>`).join('')}</div>
+      <div class="small" style="margin-top:8px;color:var(--soft)">${esc(S.name)} · ${S.sets} séries · ${fr1(S.vol / 1000)} t${S.dur ? ' · ' + dur(S.dur) : ''}</div>
+      <div class="verdicts"><div style="background:#12261A"><b style="color:#A8E6B8">${count('up')}</b><span>en progrès</span></div><div style="background:#1F2328"><b>${count('eq')}</b><span>stable</span></div><div style="background:#2A1414"><b style="color:#FF9B8A">${count('down')}</b><span>en baisse</span></div><div style="background:#1F1A28"><b style="color:var(--muscu)">${count('new')}</b><span>nouveau</span></div></div>
+      <div class="cmp" style="margin-top:10px"><span class="h">Exercice · comparé au</span><span class="h" style="text-align:right">Charge max</span><span class="h" style="text-align:right">Reps</span></div>
+      ${C.map(({ x, p, prevS, verdict }) => { const dk = p ? delta(x.top, p.top, ' kg') : { t: 'nouveau', c: 'new' }, dr = p ? delta(x.reps, p.reps, '') : { t: '', c: 'eq' };
+        return `<div class="cmp"><div style="min-width:0"><div style="font-size:13px">${esc(exoFr(x.e))}</div><div class="small">${p ? `${dd(prevS.date)} : ${kgTxt(p.top, x.e)} · ${p.reps} reps` : '1re fois'}</div></div><div class="r"><span class="v">${kgTxt(x.top, x.e)}</span><span class="d ${dk.c}">${dk.t}</span></div><div class="r"><span class="v">${x.reps}</span><span class="d ${dr.c}">${dr.t}</span></div></div>`; }).join('')}
+      <p class="small" style="margin:10px 0 0">Charge max = ta série la plus lourde ; reps = total des répétitions de l'exercice. PDC = poids du corps ; – = pas de charge enregistrée.</p>
+    </section>`);
+
+    // 4. Progression par exercice (1RM estimé)
+    const hist = new Map();
+    all.slice().reverse().forEach((Sx) => Sx.exos.forEach((x) => { if (x.best) { if (!hist.has(x.e)) hist.set(x.e, []); hist.get(x.e).push({ date: Sx.date, best: x.best, top: x.top, topReps: x.topReps }); } }));
+    const exList = [...hist.entries()].sort((a, b) => b[1].length - a[1].length);
+    if (exList.length) {
+      if (!MU_EXO || !hist.has(MU_EXO)) MU_EXO = (exList.find(([e, h]) => h.length >= 3 && !ISOLATION.test(e)) || exList.find(([, h]) => h.length >= 3) || exList[0])[0];
+      const H = hist.get(MU_EXO), lastH = H[H.length - 1], bestH = H.reduce((b, x) => (x.best.v > b.best.v ? x : b), H[0]);
+      const series = H.slice(-8).map((h) => ({ label: dd(h.date), v: h.best.v }));
+      let advice;
+      if (H.length >= 2) {
+        const prev = H[H.length - 2];
+        if (lastH.best.v > prev.best.v + 0.5) advice = `En progrès : +${fr1(lastH.best.v - prev.best.v)} kg estimés depuis le ${dd(prev.date)}. Continue sur cette lancée.`;
+        else if (lastH.best.v < bestH.best.v - 0.5) advice = `En dessous de ton meilleur (${fr0(bestH.best.v)} kg le ${dd(bestH.date)}). Objectif : retrouver ${kgTxt(bestH.best.kg, MU_EXO)} × ${bestH.best.r}, puis augmenter.`;
+        else advice = `Stable autour de ${fr0(lastH.best.v)} kg. Pour relancer : +1 ou 2 répétitions par série, puis +2,5 kg quand tu fais toutes tes séries au maximum.`;
+      }
+      parts.push(`<section class="card">
+        <div class="row"><span class="label">Progression par exercice</span><span class="small">1RM estimé</span></div>
+        <label class="small" for="mu-exo" style="display:block;margin-top:10px">Exercice</label>
+        <select class="pick" id="mu-exo">${exList.map(([e, h]) => `<option value="${esc(e)}" ${e === MU_EXO ? 'selected' : ''}>${esc(exoFr(e))} (${h.length})</option>`).join('')}</select>
+        <div class="row" style="justify-content:flex-start;gap:8px;margin-top:12px"><span class="num" style="font-size:30px">${fr0(lastH.best.v)} kg</span><span style="font-size:13px;color:var(--soft)">le ${dd(lastH.date)}${bestH !== lastH ? ` · meilleur : ${fr0(bestH.best.v)} kg (${dd(bestH.date)})` : ' · ton meilleur'}</span></div>
+        ${lineChart(series, { fmt: (v) => fr0(v) + ' kg' })}
+        <div class="small" style="margin-top:8px;color:var(--soft)">${H.slice(-4).map((h) => `${dd(h.date)} : <b>${kgTxt(h.top, MU_EXO)} × ${h.topReps}</b>`).join(' · ')}</div>
+        ${advice ? `<div class="tip" style="background:#1B2410;border:1px solid #34461A;border-radius:12px;padding:10px 12px;font-size:13px">${advice}</div>` : ''}
+        <p class="small" style="margin:10px 0 0">1RM estimé = charge que tu pourrais soulever une fois, calculée à partir de ta meilleure série (formule d'Epley).</p>
+      </section>`);
+
+      // 5. Meilleures charges
+      const recs = exList.filter(([e]) => !ISOLATION.test(e)).map(([e, h]) => ({ e, b: h.reduce((m, x) => (x.best.v > m.best.v ? x : m), h[0]) })).sort((a, b) => b.b.best.v - a.b.best.v).slice(0, 5);
+      parts.push(`<section class="card"><div class="row"><span class="label">Mes meilleures charges</span><span class="small">exercices de base · 1RM estimé</span></div>
+        ${recs.map((r) => `<div class="act"><div class="main"><div class="name">${esc(exoFr(r.e))}</div><div class="meta">${kgTxt(r.b.best.kg, r.e)} × ${r.b.best.r} · ${dd(r.b.date)}</div></div><span class="num" style="font-size:18px">${fr0(r.b.best.v)} kg</span></div>`).join('')}</section>`);
+    }
+
+    // 6. Jambes
+    const legs = MUSCLE_ORDER.includes('Jambes') ? L['Jambes'] : null;
+    if (legs && legs.p === 0) {
+      const lastLeg = all.find((Sx) => Sx.exos.some((x) => ((DATA.exercises || {})[x.e] || []).some((m) => MUSCLE_FR[m] === 'Jambes')));
+      const G = goal();
+      parts.push(`<section class="card" style="background:#2A1414;border-color:#4A2222"><div style="font-size:13px;font-weight:700;color:#FF9B8A">${lastLeg ? `Dernière séance jambes le ${dd(lastLeg.date)}` : 'Aucune série jambes enregistrée'}</div><p style="margin:6px 0 0;font-size:14px;line-height:1.45;color:#F0DCD8">${G.name ? `Pour ${esc(G.name.replace(/^le\s+/i, 'le '))}, une` : 'Une'} séance jambes par semaine (squat ou presse, fentes, mollets, gainage) aide à garder une bonne foulée en fin de course. À caler loin des séances de qualité de Garmin Coach.</p></section>`);
+    }
+
+    // 7. Régularité
+    const wks = []; for (let i = 8; i >= 0; i--) { const s0 = new Date(ws.getTime() - 7 * i * DAY), e0 = new Date(s0.getTime() + 7 * DAY); wks.push({ wk: isoWeek(s0), n: DATA.acts.filter((a) => a.cat === 'muscu' && a.date >= s0 && a.date < e0).length, cur: i === 0 }); }
+    const wmax = Math.max(...wks.map((w) => w.n), 1), cols = `grid-template-columns:repeat(${wks.length},minmax(0,1fr))`;
+    parts.push(`<section class="card"><div class="row"><span class="label">Séances par semaine</span><span class="small">${all.length} séances détaillées</span></div>
+      <div class="bars" style="${cols};height:80px">${wks.map((w) => `<div class="bar ${w.cur ? 'cur' : ''}"><span>${w.n}</span><div style="height:${Math.max(3, Math.round((w.n / wmax) * 56))}px;${w.cur ? '' : `background:${w.n ? 'var(--muscu)' : '#2C3238'}`}"></div></div>`).join('')}</div>
+      <div class="xlabels" style="${cols}">${wks.map((w) => `<span>S${w.wk}</span>`).join('')}</div></section>`);
+
+    return parts.join('');
+  }
+
+  function viewMuscuSimple(now) {
     const m = DATA.acts.filter((a) => a.cat === 'muscu');
     const w0 = weekStart(now); const weeks = [];
     for (let i = 7; i >= 0; i--) { const s = new Date(w0); s.setDate(s.getDate() - 7 * i); const e = new Date(s); e.setDate(e.getDate() + 7); weeks.push({ wk: isoWeek(s), n: m.filter((a) => a.date >= s && a.date < e).length, current: i === 0 }); }
@@ -700,6 +889,8 @@
     v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
     if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
     v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+    v.querySelectorAll('[data-mus]').forEach((b) => b.addEventListener('click', () => { MU_SESSION = b.dataset.mus; const y = window.scrollY; render(); window.scrollTo(0, y); }));
+    const pick = v.querySelector('#mu-exo'); if (pick) pick.addEventListener('change', () => { MU_EXO = pick.value; const y = window.scrollY; render(); window.scrollTo(0, y); });
     v.querySelectorAll('[data-prog]').forEach((b) => b.addEventListener('click', () => { PROG = b.dataset.prog; const y = window.scrollY; render(); window.scrollTo(0, y); }));
   }
 
