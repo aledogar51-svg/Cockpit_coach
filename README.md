@@ -50,6 +50,13 @@ L'API Strava ne permet pas de lire les séries de musculation. Claude les récup
 Historique : déposer `cockpit-muscu-historique.json` n'importe où dans le Drive.
 Format : `{ type: "cockpit-muscu", exercises: { "Bench Press": ["Chest","Triceps","Shoulders"] }, workouts: [ { id, date, sets: [[exercice, kg|null, reps, nb_séries]] } ] }`
 
+## Courses
+L'onglet Courses n'affiche que les activités de type « Course » dans Strava (ou marquées `race: true`).
+Le script récupère tout seul le profil d'altitude (`profil`) et les tours de la montre (`tours`) de chaque course.
+Un plan de passage s'ajoute par un fichier `cockpit-patch-*.json` déposé sur le Drive :
+`{ type: "cockpit-patch", activities: { "<id>": { goal_sec, plan: { depart, km: [{ p: "montée (+56)", t: <passage cumulé en s> }] } } } }`
+Ce type de fichier permet d'ajouter n'importe quel champ à une activité, ou au fichier (`data`), sans modifier le script.
+
 ## Si je modifie le script plus tard
 *Déployer → Gérer les déploiements → ✏ → Version : Nouvelle version → Déployer* (l'URL ne change pas).
 

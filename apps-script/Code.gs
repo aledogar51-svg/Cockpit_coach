@@ -161,20 +161,77 @@ function traiterRecords_(data, token, max) {
 //   workouts: [ { id: "123", date: "2026-11-12", sets: [["Bench Press", 60, 8, 5]] } ] }
 // sets = [exercice, charge kg (null = sans charge), répétitions, nombre de séries identiques]
 // ---------------------------------------------------------------------
-function integrerMuscu_(data) {
-  const it = DriveApp.searchFiles("title contains 'cockpit-muscu' and trashed = false");
+function integrerMuscu_(data) { return integrerFichiers_(data); }
+
+// Intègre tous les fichiers « cockpit-*.json » déposés sur le Drive (sauf cockpit-data.json), puis les met à la corbeille.
+//  - type "cockpit-muscu" : détail des séries (voir ci-dessus)
+//  - type "cockpit-patch" : { activities: { "<id>": { champs à ajouter } }, data: { clé: valeur } }
+//    sert à ajouter un plan de course, un profil, un objectif… sans modifier ce script.
+function integrerFichiers_(data) {
+  const it = DriveApp.searchFiles("title contains 'cockpit-' and trashed = false");
   const principal = idFichier_();
   let n = 0;
   while (it.hasNext()) {
     const f = it.next();
     if (f.getId() === principal || !/\.json$/i.test(f.getName())) continue;
     let j;
-    try { j = JSON.parse(f.getBlob().getDataAsString('UTF-8')); } catch (e) { console.warn('Fichier muscu illisible : ' + f.getName()); continue; }
-    if (!j || j.type !== 'cockpit-muscu' || !Array.isArray(j.workouts)) continue;
-    data.exercises = Object.assign(data.exercises || {}, j.exercises || {});
-    data.muscu = data.muscu || {};
-    j.workouts.forEach(w => { if (w && w.id && Array.isArray(w.sets)) { data.muscu[String(w.id)] = { date: w.date || null, sets: w.sets }; n++; } });
+    try { j = JSON.parse(f.getBlob().getDataAsString('UTF-8')); } catch (e) { console.warn('Fichier illisible : ' + f.getName()); continue; }
+    if (!j || typeof j !== 'object') continue;
+    if (j.type === 'cockpit-muscu' && Array.isArray(j.workouts)) {
+      data.exercises = Object.assign(data.exercises || {}, j.exercises || {});
+      data.muscu = data.muscu || {};
+      j.workouts.forEach(w => { if (w && w.id && Array.isArray(w.sets)) { data.muscu[String(w.id)] = { date: w.date || null, sets: w.sets }; n++; } });
+    } else if (j.type === 'cockpit-patch') {
+      data.patches_en_attente = data.patches_en_attente || {};
+      Object.keys(j.activities || {}).forEach(id => { data.patches_en_attente[id] = Object.assign(data.patches_en_attente[id] || {}, j.activities[id]); n++; });
+      Object.keys(j.data || {}).forEach(k => {
+        const v = j.data[k];
+        if (v && typeof v === 'object' && !Array.isArray(v) && data[k] && typeof data[k] === 'object' && !Array.isArray(data[k])) Object.assign(data[k], v); else data[k] = v;
+        n++;
+      });
+    } else continue;
     f.setTrashed(true);
+  }
+  appliquerPatchs_(data);
+  return n;
+}
+
+// Applique les champs en attente aux activités déjà présentes (les autres attendent leur synchro).
+function appliquerPatchs_(data) {
+  const P = data.patches_en_attente;
+  if (!P) return 0;
+  let n = 0;
+  data.activities.forEach(a => { const p = P[String(a.id)]; if (p) { Object.assign(a, p); delete P[String(a.id)]; n++; } });
+  if (!Object.keys(P).length) delete data.patches_en_attente;
+  return n;
+}
+
+// Courses : récupère le profil d'altitude et les temps au km (tours de la montre) des courses qui ne les ont pas encore.
+function detailsCourses_(data, token, max) {
+  let n = 0;
+  for (const a of data.activities) {
+    if (n >= max) break;
+    if (!a.race || a.profil_fait || RUN_TYPES.indexOf(a.type) < 0) continue;
+    try {
+      if (!a.tours) {
+        const d = strava_('/activities/' + a.id, token);
+        const laps = (d.laps && d.laps.length > 1) ? d.laps : null;
+        if (laps) a.tours = laps.map(l => [Math.round(l.distance), l.elapsed_time, Math.round(l.total_elevation_gain || 0), l.average_heartrate ? Math.round(l.average_heartrate) : null]);
+        else if (d.splits_metric && d.splits_metric.length) a.tours = d.splits_metric.map(sp => [Math.round(sp.distance), sp.elapsed_time, Math.max(0, Math.round(sp.elevation_difference || 0)), sp.average_heartrate ? Math.round(sp.average_heartrate) : null]);
+      }
+      if (!a.profil) {
+        const st = strava_('/activities/' + a.id + '/streams?keys=distance,altitude&key_by_type=true', token);
+        const dist = st.distance && st.distance.data, alt = st.altitude && st.altitude.data;
+        if (dist && alt && dist.length === alt.length && dist.length > 10) {
+          const step = Math.max(1, Math.floor(dist.length / 120)), pr = [];
+          for (let i = 0; i < dist.length; i += step) pr.push([Math.round(dist[i]), Math.round(alt[i] * 10) / 10]);
+          pr.push([Math.round(dist[dist.length - 1]), Math.round(alt[alt.length - 1] * 10) / 10]);
+          a.profil = pr;
+        }
+      }
+      a.profil_fait = true;
+      n++;
+    } catch (e) { if (/Quota/.test(e.message)) break; console.warn(e); }
   }
   return n;
 }
@@ -184,7 +241,7 @@ function integrerMuscu() {
   const data = lireDonnees_();
   const n = integrerMuscu_(data);
   if (n) ecrireDonnees_(data);
-  Logger.log(n ? '💪 ' + n + ' séances de muscu intégrées (' + Object.keys(data.muscu).length + ' au total).' : 'Aucun fichier cockpit-muscu à intégrer.');
+  Logger.log(n ? '✅ ' + n + ' éléments intégrés (' + Object.keys(data.muscu || {}).length + ' séances de muscu au total).' : 'Aucun fichier cockpit-… à intégrer.');
 }
 
 // Une fois par jour : retire les activités supprimées sur Strava (et relance les records si l'une d'elles en détenait un).
@@ -249,10 +306,12 @@ function synchroniser(options) {
 
     data.activities = trier_([...index.values()]);
     let menage = false, analysees = 0, muscu = 0;
-    try { muscu = integrerMuscu_(data); } catch (e) { console.warn(e); }
+    try { muscu = integrerFichiers_(data) + appliquerPatchs_(data); } catch (e) { console.warn(e); }
+    let courses = 0;
+    if (!depuisAppli) { try { courses = detailsCourses_(data, token, 2); } catch (e) { console.warn(e); } }
     try { menage = nettoyageQuotidien_(data, token); } catch (e) { console.warn(e); }
     if (!depuisAppli) { try { analysees = traiterRecords_(data, token, 20); } catch (e) { console.warn(e); } }
-    if (nouvelles || modifiees || menage || analysees || muscu) ecrireDonnees_(data);
+    if (nouvelles || modifiees || menage || analysees || muscu || courses) ecrireDonnees_(data);
     return { statut: 'ok', recues: recues.length, nouvelles: nouvelles, modifiees: modifiees, records_en_attente: fileRecords_().length, muscu_integrees: muscu };
   } finally {
     lock.releaseLock();

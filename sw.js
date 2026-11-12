@@ -1,6 +1,6 @@
 // Cockpit – service worker : rend l'appli installable et utilisable hors connexion.
 // Ne met JAMAIS en cache les appels Google (connexion, Drive) : seules les pièces de l'appli sont gardées.
-const VERSION = 'cockpit-v12';
+const VERSION = 'cockpit-v13';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'];
 
 self.addEventListener('install', (e) => {

@@ -106,7 +106,7 @@
   .day .b.rest{background:#1F2328;color:#6B7480} .day .b.todo{border:1.5px dashed #3A4148;color:#6B7480} .day.today .b.todo{border:2px solid var(--accent);color:var(--accent)}
   .day .mu{width:6px;height:6px;border-radius:3px} .day .mu.on{background:var(--muscu)}
   .tips{background:#1B2410;border-color:#34461A} .tip{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#E3E8D8;margin-top:10px} .tip b{font-family:'Space Grotesk',sans-serif;color:var(--accent)}
-  .seg{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap} .seg button{min-height:36px;padding:0 12px;border-radius:18px;border:1px solid #2A2F35;background:transparent;font-size:12px;cursor:pointer} .seg button[aria-pressed=true]{background:var(--accent);color:#0E1013;border-color:var(--accent);font-weight:700}
+  .seg{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap} .seg button{min-height:36px;padding:0 12px;border-radius:18px;border:1px solid #2A2F35;background:transparent;font-size:12px;cursor:pointer} .seg button{white-space:nowrap;flex-shrink:0} .seg button[aria-pressed=true]{background:var(--accent);color:#0E1013;border-color:var(--accent);font-weight:700}
   .chart{display:block;width:100%;height:auto;margin-top:8px} .chart-l{display:grid;font-size:10px;color:var(--muted);text-align:center;margin-top:2px}
   .cmp{display:grid;grid-template-columns:minmax(0,1fr) 70px 54px;gap:2px 10px;align-items:center;padding:7px 0;border-bottom:1px solid #1F2328}
   .cmp .h{font-size:11px;color:var(--muted)} .cmp .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
@@ -114,6 +114,8 @@
   .verdicts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px} .verdicts div{border-radius:10px;padding:8px;text-align:center} .verdicts b{display:block;font-family:'Space Grotesk',sans-serif;font-size:18px} .verdicts span{font-size:11px;color:var(--muted)}
   select.pick{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px;margin-top:10px}
   .mbar{flex:1;position:relative;height:12px;background:var(--line);border-radius:6px;overflow:hidden} .mbar .zone{position:absolute;left:40%;width:40%;top:0;bottom:0;background:#26331C} .mbar .p{position:absolute;left:0;top:0;bottom:0} .mbar .s{position:absolute;top:0;bottom:0;background:#5C6B2A}
+  .kmrow{display:grid;grid-template-columns:24px minmax(0,1fr) 62px 62px 58px;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #1F2328;font-size:13px}
+  .kmrow.h{font-size:11px;color:var(--muted);margin-top:10px;border-bottom-color:var(--line)}
   dialog input[type=text]{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px}
   dialog .help{font-size:12px;color:var(--muted);line-height:1.45;margin-top:6px}
   .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));background:#2A2F35;color:var(--ink);padding:10px 16px;border-radius:12px;font-size:13px;z-index:10;max-width:90%;text-align:center}
@@ -199,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · connexion verrouillée';
+  const APP_VERSION = '2026-11-12 · courses';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -614,52 +616,138 @@
         <div class="tile"><span class="t">Dénivelé</span><span class="num v">${fr0(sum(r28, (a) => a.dplus))}</span><span class="t">m D+</span></div>
       </section>
       ${intensitySplit(now)}
+      ${recordsCard()}
       <section>${[...groups.entries()].map(([k, arr]) => { const s = new Date(k); const km = sum(arr.filter((a) => a.run), (a) => a.km); return `<div class="week-h"><span>Semaine ${isoWeek(s)} · ${dShort(s)}</span><span>${km ? fr1(km) + ' km' : ''}</span></div><div class="card" style="padding:0 16px">${arr.map((a) => actRow(a, now)).join('')}</div>`; }).join('') || '<p class="small">Aucune activité pour ce filtre.</p>'}</section>
     `;
   }
 
-  function viewCourses(now) {
-    const races = DATA.acts.filter((a) => a.race);
-    const hero = races[0];
-    const nr = DATA.next_race;
-    let next;
-    if (nr && nr.date) {
-      const days = Math.ceil((startOfDay(new Date(nr.date)) - startOfDay(now)) / DAY);
-      next = `<section class="card"><div class="row"><div><div class="small">Prochain objectif</div><div style="font-size:16px;font-weight:600;margin-top:2px">${esc(nr.name || 'Course')}</div><div class="small" style="margin-top:2px">${esc(dDay(new Date(nr.date)))}${nr.km ? ' · ' + fr1(nr.km) + ' km' : ''}${nr.dplus ? ' · ' + fr0(nr.dplus) + ' m D+' : ''}${nr.goal ? ' · objectif ' + esc(nr.goal) : ''}</div></div><span class="num" style="font-size:30px;color:var(--accent)">J-${Math.max(0, days)}</span></div></section>`;
-    } else {
-      next = `<section class="card" style="border-style:dashed"><div class="small">Prochain objectif</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Aucun pour l'instant. Ajoute <code>next_race</code> dans ton fichier de données (nom, date, km, D+, objectif).</p></section>`;
-    }
-    let heroHtml = '';
-    if (hero) {
-      const t = hero.elapsed || hero.sec;
-      const goal = hero.goal_sec ? (t <= hero.goal_sec ? `<span class="badge ok">Objectif atteint</span>` : `<span class="badge warn">Objectif manqué</span>`) : '';
-      const delta = hero.goal_sec ? `objectif ${hms(hero.goal_sec)} · ${t <= hero.goal_sec ? '−' : '+'}${dur(Math.abs(hero.goal_sec - t))}` : '';
-      heroHtml = `<section class="card">
-        <div class="row" style="align-items:flex-start"><div><div class="small">${esc(dDay(hero.date))}</div><h2 style="font-size:20px;margin-top:4px">${esc(hero.name)}</h2></div>${goal}</div>
-        <div class="row" style="justify-content:flex-start;align-items:flex-end;margin-top:12px;gap:12px"><span class="num hero-time">${hms(t)}</span><span class="small" style="line-height:1.4">temps officiel<br>${esc(delta)}</span></div>
-        <div class="grid4">
-          <div><div class="num" style="font-size:20px">${fr1(hero.km)}</div><div class="small">km</div></div>
-          <div><div class="num" style="font-size:20px">${fr0(hero.dplus)}</div><div class="small">m D+</div></div>
-          <div><div class="num" style="font-size:20px">${pace(hero.pace)}</div><div class="small">/km</div></div>
-          <div><div class="num" style="font-size:20px">${hero.re ?? '–'}</div><div class="small">effort</div></div>
-        </div>
-        ${hero.desc ? `<p class="small" style="margin:12px 0 0;color:var(--soft)">« ${esc(hero.desc)} »</p>` : ''}
-      </section>`;
-    }
+  // ---------- RECORDS (affichés dans Entraînement) ----------
+  function recordsCard() {
     const byId = new Map(DATA.acts.map((a) => [String(a.id), a]));
-    const recs = (DATA.records || []).map((r) => { const a = byId.get(String(r.activity_id)); return { ...r, suspect: a ? a.suspect : false, from: a ? a.name : '' }; });
+    const recs = (DATA.records || []).map((r) => { const a = byId.get(String(r.activity_id)); return { ...r, suspect: a ? a.suspect : false }; });
     const longest = DATA.acts.filter((a) => a.run).sort((a, b) => b.km - a.km)[0];
-    const recHtml = recs.map((r) => `<div class="tile"><span class="t">${esc(r.label)}</span><span class="num v ${r.suspect ? 'muted-v' : ''}" style="font-size:26px">${hms(r.sec)}</span><span class="t" ${r.suspect ? 'style="color:var(--warn-ic)"' : ''}>${r.suspect ? 'À vérifier · vitesse max anormale' : esc(dShort(new Date(r.date)))}</span></div>`).join('')
-      + (longest ? `<div class="tile"><span class="t">Plus longue sortie</span><span class="num v" style="font-size:26px">${fr1(longest.km)} km</span><span class="t">${esc(dShort(longest.date))}</span></div>` : '');
-    return `
-      ${next}
-      ${heroHtml}
-      <h2 style="margin-top:6px">Records</h2>
-      ${DATA.records_pending ? `<p class="small" style="margin:-4px 0 0;color:var(--warn-ic)">⏳ Records en cours de recalcul : encore ${DATA.records_pending} sorties à analyser (mise à jour automatique dans les prochaines heures).</p>` : ''}
-      <section class="grid2">${recHtml}</section>
-      <h2 style="margin-top:6px">Toutes mes courses</h2>
-      <section class="card" style="padding:0 16px">${races.map((a) => actRow(a, now)).join('') || '<p class="small">Marque une activité avec "race": true dans le fichier.</p>'}</section>
-    `;
+    const tiles = recs.map((r) => `<div class="tile"><span class="t">${esc(r.label)}</span><span class="num v ${r.suspect ? 'muted-v' : ''}" style="font-size:24px">${hms(r.sec)}</span><span class="t" ${r.suspect ? 'style="color:var(--warn-ic)"' : ''}>${r.suspect ? 'À vérifier · vitesse max anormale' : esc(dShort(new Date(r.date)))}</span></div>`).join('')
+      + (longest ? `<div class="tile"><span class="t">Plus longue sortie</span><span class="num v" style="font-size:24px">${fr1(longest.km)} km</span><span class="t">${esc(dShort(longest.date))}</span></div>` : '');
+    if (!tiles) return '';
+    return `<h2 style="margin-top:10px">Mes records</h2>
+      ${DATA.records_pending ? `<p class="small" style="margin:-4px 0 0;color:var(--warn-ic)">⏳ Records en cours de recalcul : encore ${DATA.records_pending} sorties à analyser.</p>` : ''}
+      <section class="grid2">${tiles}</section>`;
+  }
+
+  // ---------- COURSES (uniquement les dossards) ----------
+  let CO_RACE = null;
+  const mmss = (sec) => { const a = Math.abs(Math.round(sec)); return a >= 60 ? `${Math.floor(a / 60)}:${String(a % 60).padStart(2, '0')}` : `${a} s`; };
+  const gap = (sec) => (Math.round(sec) === 0 ? '=' : `${sec < 0 ? '−' : '+'}${mmss(sec)}`);
+
+  function raceProfileSvg(a, rows) {
+    const P = a.profil;
+    if (!P || P.length < 5) return '';
+    const W = 380, X0 = 8, X1 = 372, YT = 60, YB = 168, D = P[P.length - 1][0] || 1;
+    const alts = P.map((p) => p[1]), amin = Math.min(...alts), amax = Math.max(...alts), pad = (amax - amin) * 0.15 || 10;
+    const X = (d) => X0 + ((X1 - X0) * d) / D, Y = (al) => YB - ((YB - YT) * (al - (amin - pad))) / (amax + pad - (amin - pad));
+    const line = P.map((p) => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+    const area = `M${X0},${YB} L${P.map((p) => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' L')} L${X1},${YB} Z`;
+    let grid = '', bars = '', labels = '', cumPts = `${X0},${YB}`, maxCum = 1;
+    if (rows && rows.length) {
+      const maxBar = Math.max(...rows.map((r) => Math.abs(r.ecart)), 1);
+      maxCum = Math.max(...rows.map((r) => Math.abs(r.cumE)), 1) * 1.1;
+      const CY = (v) => YB - ((YB - YT) * Math.max(0, v)) / maxCum;
+      rows.forEach((r, i) => {
+        const x0 = X(r.d0), x1 = X(r.d1), g = -r.ecart, h = Math.max(1.5, (Math.abs(g) / maxBar) * 38);
+        grid += `<line x1="${x1.toFixed(1)}" y1="12" x2="${x1.toFixed(1)}" y2="${YB}" stroke="#23282D"/>`;
+        bars += `<rect x="${(x0 + 1.5).toFixed(1)}" y="${(g >= 0 ? 52 - h : 52).toFixed(1)}" width="${Math.max(1, x1 - x0 - 3).toFixed(1)}" height="${h.toFixed(1)}" rx="2" fill="${g >= 0 ? '#7EE2A8' : '#FF9B8A'}" opacity=".9"/>`;
+        if ((i + 1) % 2 === 1) labels += `<text x="${((x0 + x1) / 2).toFixed(1)}" y="${YB + 13}" text-anchor="middle" font-size="9" fill="#9AA3AB">${i + 1}</text>`;
+        cumPts += ` ${x1.toFixed(1)},${CY(-r.cumE).toFixed(1)}`;
+      });
+    }
+    const last = rows && rows.length ? rows[rows.length - 1] : null;
+    return `<svg class="chart" viewBox="0 0 ${W} 186" role="img" aria-label="Profil de la course de ${fr0(amin)} à ${fr0(amax)} m${last ? `, avance au km ${rows.length} : ${gap(last.cumE)}` : ''}">
+      ${grid}<path d="${area}" fill="#262B31"/><polyline points="${line}" fill="none" stroke="#5A646E" stroke-width="1.5" stroke-linejoin="round"/>
+      ${rows && rows.length ? `${bars}<line x1="${X0}" y1="52" x2="${X1}" y2="52" stroke="#3A4148"/><polyline points="${cumPts}" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      <text x="${X0}" y="9" font-size="9" fill="#7EE2A8">gagné (vert) / perdu (rouge) sur ton plan, par km</text>
+      <text x="${X1}" y="${Math.max(70, YB - ((YB - YT) * Math.max(0, -last.cumE)) / maxCum - 6).toFixed(0)}" text-anchor="end" font-size="10" font-weight="700" fill="var(--accent)">${gap(last.cumE)} au km ${rows.length}</text>` : ''}
+      <text x="10" y="${YB - 4}" font-size="9" fill="#6B7480">${fr0(amin)} m</text>${labels}</svg>
+      ${rows && rows.length ? `<div class="legend" style="margin-top:4px"><span><span class="dot" style="background:#7EE2A8"></span>Gagné</span><span><span class="dot" style="background:#FF9B8A"></span>Perdu</span><span><span class="dot" style="background:var(--accent);height:3px;width:14px"></span>Avance cumulée</span></div>` : ''}`;
+  }
+
+  function viewCourses(now) {
+    const races = DATA.acts.filter((a) => a.race && a.run).sort((x, y) => y.date - x.date);
+    const G = goal(), upcoming = G.date && G.date >= startOfDay(now);
+    const dd = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    if (!CO_RACE) CO_RACE = races[0] ? String(races[0].id) : (upcoming ? 'next' : null);
+    const short = (n) => { let x = n.replace(/^[^-]*\s-\s/, '').replace(/\s*20\d\d\s*$/, '').trim(); return x.length > 24 ? x.slice(0, 23) + '…' : x; };
+    const chips = races.map((r) => `<button data-race="${esc(String(r.id))}" aria-pressed="${CO_RACE === String(r.id)}">${esc(short(r.name))} · ${dd(r.date)}</button>`).join('')
+      + (upcoming ? `<button data-race="next" aria-pressed="${CO_RACE === 'next'}">${esc(short(G.name || 'Prochaine course'))} · J-${Math.ceil((startOfDay(G.date) - startOfDay(now)) / DAY)}</button>` : '');
+    const parts = [`<div class="seg" role="group" aria-label="Course" style="margin-top:0;flex-wrap:nowrap;overflow-x:auto">${chips}</div>`];
+
+    if (!races.length && !upcoming) {
+      parts.push(`<section class="card" style="border-style:dashed"><p style="margin:0;font-size:14px;color:var(--soft)">Aucune course pour l'instant. Dans Strava, choisis le type « Course » pour une activité avec dossard : elle apparaîtra ici.</p></section>`);
+      return parts.join('');
+    }
+
+    if (CO_RACE === 'next' && upcoming) {
+      const days = Math.ceil((startOfDay(G.date) - startOfDay(now)) / DAY), goalPace = G.targetSec && G.km ? G.targetSec / G.km : null;
+      parts.push(`<section class="card"><div class="small">${esc(G.date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}</div>
+        <div class="row" style="align-items:flex-start;margin-top:4px"><span style="font-size:19px;font-weight:700">${esc(G.name || 'Prochaine course')}</span><span class="num" style="font-size:30px;color:var(--accent)">J-${days}</span></div>
+        <div class="grid4" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><div class="small">Distance</div><div class="num" style="font-size:20px">${G.km ? fr1(G.km) + ' km' : '–'}</div></div><div><div class="small">Temps visé</div><div class="num" style="font-size:20px">${G.targetSec ? hms(G.targetSec) : '–'}</div></div><div><div class="small">Allure cible</div><div class="num" style="font-size:20px">${goalPace ? pace(goalPace) : '–'}</div></div></div>
+        <p class="small" style="margin:12px 0 0;color:var(--soft)">Plan de passage : on le préparera ensemble à l'approche de la course, il s'affichera ici.</p></section>`);
+      return parts.join('');
+    }
+
+    const a = races.find((r) => String(r.id) === CO_RACE) || races[0];
+    const t = a.elapsed || a.sec;
+    const badge = a.goal_sec ? (t <= a.goal_sec ? '<span class="badge ok">Objectif atteint</span>' : '<span class="badge warn">Objectif manqué</span>') : '';
+    parts.push(`<section class="card">
+      <div class="row" style="align-items:flex-start"><div><div class="small">${esc(a.date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }))}</div><div style="font-size:19px;font-weight:700;margin-top:3px">${esc(a.name)}</div><div class="small" style="color:var(--soft);margin-top:2px">${fr1(a.km)} km · ${fr0(a.dplus)} m D+ · ${pace(a.pace)}/km</div></div>${badge}</div>
+      <div class="row" style="justify-content:flex-start;align-items:flex-end;gap:12px;margin-top:12px"><span class="num hero-time" style="font-size:52px">${hms(t)}</span>${a.goal_sec ? `<span class="small" style="line-height:1.4;color:var(--soft)">objectif ${hms(a.goal_sec)}<br><b style="color:${t <= a.goal_sec ? '#7EE2A8' : '#FF9B8A'}">${gap(t - a.goal_sec)}</b> ${t <= a.goal_sec ? "d'avance" : 'de retard'}</span>` : ''}</div>
+      ${a.desc ? `<p class="small" style="margin:10px 0 0;color:var(--soft)">« ${esc(a.desc)} »</p>` : ''}
+    </section>`);
+
+    // Tours de la montre (≈ 1 km) et plan éventuel
+    const T = (a.tours || []).filter((x) => x[0] >= 900);
+    const plan = a.plan && Array.isArray(a.plan.km) ? a.plan.km : null;
+    let rows = [];
+    if (T.length) {
+      let d = 0, cr = 0;
+      rows = T.map((x, i) => { const r = { km: i + 1, d0: d, d1: d + x[0], real: x[1], dplus: x[2], hr: x[3] }; d += x[0]; cr += x[1]; r.cumR = cr; return r; });
+      if (plan) {
+        rows = rows.slice(0, plan.length);
+        rows.forEach((r, i) => { r.cumP = plan[i].t; r.planSplit = plan[i].t - (i ? plan[i - 1].t : 0); r.ecart = r.real - r.planSplit; r.cumE = r.cumR - r.cumP; r.prof = plan[i].p || ''; });
+      }
+    }
+
+    if (a.profil) parts.push(`<section class="card"><div class="row"><span class="label">${plan ? 'Profil et avance sur ton plan' : 'Profil de la course'}</span><span class="small">${plan ? 'par km' : `${fr0(a.dplus)} m D+`}</span></div>${raceProfileSvg(a, plan ? rows : null)}</section>`);
+
+    if (plan && rows.length) {
+      const isUp = (r) => /mont[ée]e/i.test(r.prof) || (!r.prof && r.dplus >= 30);
+      const up = rows.filter(isUp), rest = rows.filter((r) => !isUp(r));
+      const sUp = sum(up, (r) => r.ecart), sRest = sum(rest, (r) => r.ecart);
+      const slow = rows.filter((r) => r.ecart > 5);
+      const hrs = up.map((r) => r.hr).filter(Boolean);
+      const perUp = up.length ? sUp / up.length : 0;
+      let advice = perUp < -30 ? 'Ton plan était prudent en montée : pour la prochaine course de ce type, tu peux les prévoir plus rapides.'
+        : perUp > 15 ? 'Les montées t\'ont coûté du temps : c\'est le point à travailler (côtes, renforcement).' : 'Montées bien calibrées dans ton plan.';
+      parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Ce que dit ta course</div>
+        <div class="grid2" style="margin-top:10px">
+          <div style="background:#0E1013;border-radius:12px;padding:10px"><div class="small">${up.length} montée${up.length > 1 ? 's' : ''}</div><div class="num" style="font-size:22px;color:${sUp <= 0 ? '#7EE2A8' : '#FF9B8A'}">${gap(sUp)}</div><div class="small">sur ton plan</div></div>
+          <div style="background:#0E1013;border-radius:12px;padding:10px"><div class="small">${rest.length} km plat, vallonné, descente</div><div class="num" style="font-size:22px;color:${sRest <= 0 ? '#7EE2A8' : '#FF9B8A'}">${gap(sRest)}</div><div class="small">sur ton plan</div></div>
+        </div>
+        <p style="margin:10px 0 0;font-size:14px;line-height:1.45;color:#E3E8D8">${up.length ? `En montée : ${up.map((r) => `km ${r.km} ${gap(r.ecart)}`).join(', ')}${hrs.length ? `, cardio ${Math.min(...hrs)}–${Math.max(...hrs)}` : ''}. ` : ''}${slow.length ? `Plus lent que prévu : ${slow.map((r) => `km ${r.km} (${gap(r.ecart)})`).join(', ')}.` : 'Aucun km plus lent que prévu.'}</p>
+        <p style="margin:8px 0 0;font-size:13px;line-height:1.45;color:#B9C4A6">${advice}</p></section>`);
+
+      parts.push(`<section class="card"><div class="row"><span class="label">Temps de passage au km</span><span class="small">ton plan${a.plan.depart ? ' · départ ' + esc(a.plan.depart) : ''}</span></div>
+        <div class="kmrow h"><span>Km</span><span>Profil</span><span style="text-align:right">Prévu</span><span style="text-align:right">Réel</span><span style="text-align:right">Écart</span></div>
+        ${rows.map((r) => `<div class="kmrow"><span class="num">${r.km}</span><span style="font-size:12px;color:${isUp(r) ? '#FFB27A' : /descente/i.test(r.prof) ? '#8FB3FF' : 'var(--muted)'}">${esc(r.prof || (r.dplus >= 30 ? `+${r.dplus} m` : ''))}</span><span style="text-align:right;color:var(--muted)">${hms(r.cumP)}</span><span style="text-align:right;font-weight:600">${hms(r.cumR)}</span><span style="display:flex;flex-direction:column;align-items:flex-end"><b class="num" style="color:${r.cumE <= 0 ? '#7EE2A8' : '#FF9B8A'}">${gap(r.cumE)}</b><span style="font-size:10px;color:${r.ecart < 0 ? '#7EE2A8' : r.ecart > 0 ? '#FF9B8A' : 'var(--muted)'}">km ${gap(r.ecart)}</span></span></div>`).join('')}
+        <p class="small" style="margin:10px 0 0">Prévu / Réel = temps de passage cumulé. Écart = avance (vert) ou retard (rouge) cumulé, et en dessous ce qui a été gagné ou perdu sur ce km. Réel = tours automatiques de ta montre.</p></section>`);
+    } else if (rows.length) {
+      parts.push(`<section class="card"><div class="row"><span class="label">Temps au km</span><span class="small">tours de la montre</span></div>
+        <div class="kmrow h" style="grid-template-columns:28px minmax(0,1fr) 60px 60px 44px"><span>Km</span><span>D+</span><span style="text-align:right">Temps</span><span style="text-align:right">Passage</span><span style="text-align:right">FC</span></div>
+        ${rows.map((r) => `<div class="kmrow" style="grid-template-columns:28px minmax(0,1fr) 60px 60px 44px"><span class="num">${r.km}</span><span style="font-size:12px;color:${r.dplus >= 30 ? '#FFB27A' : 'var(--muted)'}">${r.dplus ? '+' + r.dplus + ' m' : ''}</span><span style="text-align:right;font-weight:600">${mmss(r.real)}</span><span style="text-align:right;color:var(--muted)">${hms(r.cumR)}</span><span style="text-align:right;color:var(--muted)">${r.hr || '–'}</span></div>`).join('')}
+        <p class="small" style="margin:10px 0 0">Pas de plan de passage pour cette course : donne-le-moi et je l'ajouterai pour la comparaison.</p></section>`);
+    } else if (!a.profil) {
+      parts.push(`<section class="card" style="border-style:dashed"><p style="margin:0;font-size:14px;color:var(--soft)">Le profil et les temps au km arrivent à la prochaine synchro automatique (dans l'heure).</p></section>`);
+    }
+    return parts.join('');
   }
 
   // ---------- MUSCU (détail des séries déposé par la tâche de nuit) ----------
@@ -893,6 +981,7 @@
     v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
     if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
     v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+    v.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { CO_RACE = b.dataset.race; render(); }));
     v.querySelectorAll('[data-mus]').forEach((b) => b.addEventListener('click', () => { MU_SESSION = b.dataset.mus; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     const pick = v.querySelector('#mu-exo'); if (pick) pick.addEventListener('change', () => { MU_EXO = pick.value; const y = window.scrollY; render(); window.scrollTo(0, y); });
     v.querySelectorAll('[data-prog]').forEach((b) => b.addEventListener('click', () => { PROG = b.dataset.prog; const y = window.scrollY; render(); window.scrollTo(0, y); }));
