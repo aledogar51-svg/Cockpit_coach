@@ -197,7 +197,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · sans jambes';
+  const APP_VERSION = '2026-11-12 · noms Strava';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -671,7 +671,8 @@
     'Bulgarian Split Squat': 'Squat bulgare', 'Romanian Deadlift': 'Soulevé de terre roumain', 'Deadlift': 'Soulevé de terre', 'Leg Extension': 'Leg extension', 'Leg Curl': 'Leg curl',
     'Seated Leg Curl': 'Leg curl assis', 'Standing Calf Raise': 'Mollets debout', 'Seated Calf Raise': 'Mollets assis', 'Calf Raise': 'Mollets', 'Hip Thrust': 'Hip thrust', 'Step Up': 'Step-up'
   };
-  const exoFr = (e) => EXO_FR[e] || e;
+  // Noms affichés tels que fournis par Strava (pas de traduction)
+  const exoFr = (e) => e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
     Abdominals: 'Abdos', Obliques: 'Abdos', Core: 'Abdos', Forearms: 'Avant-bras', Quadriceps: 'Jambes', Hamstrings: 'Jambes', Glutes: 'Jambes', Calves: 'Jambes', Adductors: 'Jambes', Abductors: 'Jambes', 'Hip Flexors': 'Jambes', Legs: 'Jambes' };
   // Jambes volontairement absentes : séances au poids du corps à la maison, non enregistrées par la montre
