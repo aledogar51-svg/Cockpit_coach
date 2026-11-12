@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · courses';
+  const APP_VERSION = '2026-11-12 · programme muscu';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -842,10 +842,107 @@
     return d === 0 ? { t: '=', c: 'eq' } : { t: `${d > 0 ? '+' : '−'}${fr1(Math.abs(d))}${unit}`, c: d > 0 ? 'up' : 'down' };
   };
 
+  // ---------- PROGRAMME PROPOSÉ (2 séances / semaine) ----------
+  // Objectif : ratio poussée / tirage ≈ 1 : 1 et chaque muscle dans la zone utile (10–20 séries / semaine),
+  // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
+  const PROGRAMME = [
+    { id: 'A', titre: 'Séance A · Dos et biceps', sous: 'Tirage + abdos', exos: [
+      { e: 'Close Grip Cable Lat Pulldown', s: 4, r: [8, 10] },
+      { e: 'Seated Cable Row', s: 4, r: [8, 10] },
+      { e: 'Reverse Grip Barbell Row', s: 3, r: [8, 10] },
+      { e: 'Cable Rear Delt Reverse Fly', s: 3, r: [12, 15] },
+      { e: 'Ez Bar Preacher Curl', s: 3, r: [10, 12] },
+      { e: 'Hanging Knee Raise', s: 3, r: [10, 15], pdc: true, muscles: ['Abdominals'] }
+    ] },
+    { id: 'B', titre: 'Séance B · Pecs, épaules, triceps', sous: 'Poussée + un peu de tirage + gainage', exos: [
+      { e: 'Smith Machine Incline Bench Press', s: 4, r: [8, 10] },
+      { e: 'Bench Press', s: 3, r: [8, 10] },
+      { e: 'Low Cable Fly Crossovers', s: 3, r: [12, 15] },
+      { e: 'Smith Machine Overhead Press', s: 3, r: [8, 10] },
+      { e: 'Machine Single Arm Seated Row', s: 3, r: [8, 10] },
+      { e: 'Triceps Pressdown', s: 4, r: [10, 12] },
+      { e: 'Plank', s: 3, r: [45, 60], unit: 's', pdc: true, muscles: ['Abdominals'] }
+    ] }
+  ];
+  EXO_FR['Plank'] = EXO_FR['Plank'] || 'Gainage';
+
+  // Charge proposée pour un exercice, d'après la dernière séance où il a été fait
+  function proposeCharge(ex, all) {
+    const S = all.find((x) => x.exos.some((y) => y.e === ex.e));
+    const unit = ex.unit || 'reps';
+    if (ex.pdc) {
+      const last = S ? S.exos.find((y) => y.e === ex.e) : null;
+      return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : 'Nouveau : au poids du corps.' };
+    }
+    if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: 'Jamais fait : choisis une charge qui permet ' + ex.r[1] + ' répétitions propres.' };
+    const raw = (DATA.muscu[S.id].sets || []).filter((x) => x[0] === ex.e).map(([, kg, r, n]) => ({ kg: kg == null || +kg === 0 ? null : +kg, r: +r || 0, n: n || 1 })).filter((x) => x.kg != null);
+    const dd = S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+    if (!raw.length) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Dernière fois le ${dd}, sans charge enregistrée.` };
+    const ok = raw.filter((x) => x.r >= ex.r[0]);
+    const W = Math.max(...(ok.length ? ok : raw).map((x) => x.kg));
+    const atW = raw.filter((x) => x.kg === W), minR = Math.min(...atW.map((x) => x.r)), maxR = Math.max(...atW.map((x) => x.r));
+    const lastTxt = `Dernière fois (${dd}) : ${fr1(W)} kg × ${minR === maxR ? minR : minR + '–' + maxR}`;
+    if (minR >= ex.r[1]) {
+      // Toutes les séries au maximum de répétitions : on augmente
+      let next;
+      if (/machine|cable|pulldown|seated.*row/i.test(ex.e)) {
+        const seen = [...new Set(all.flatMap((x) => (DATA.muscu[x.id].sets || []).filter((y) => y[0] === ex.e).map((y) => +y[1])))].filter((v) => v > W).sort((a, b) => a - b);
+        next = seen.length && seen[0] <= W * 1.15 ? seen[0] : W + 2.5;
+      } else next = W + (/dumbbell/i.test(ex.e) ? 2 : 2.5);
+      return { kg: next, reps: `${ex.r[0]}–${ex.r[1]}`, why: `${lastTxt}. Toutes tes séries au maximum : on monte à ${fr1(next)} kg.`, up: true };
+    }
+    return { kg: W, reps: `${ex.r[0]}–${ex.r[1]}`, why: `${lastTxt}. Vise ${ex.r[1]} répétitions sur chaque série avant d'augmenter.` };
+  }
+
+  // Projection : séries par muscle et ratio si le programme est suivi 1 fois par semaine
+  function programmeProjection() {
+    const EX = DATA.exercises || {};
+    const fake = PROGRAMME.map((P) => ({ exos: P.exos.map((x) => ({ e: x.e, sets: x.s })) }));
+    PROGRAMME.forEach((P) => P.exos.forEach((x) => { if (x.muscles && !EX[x.e]) EX[x.e] = x.muscles; }));
+    DATA.exercises = EX;
+    return { L: muscleLoad(fake), PP: pushPull(fake) };
+  }
+
+  function viewProgramme(all) {
+    const parts = [];
+    const { L, PP } = programmeProjection();
+    const max = 25;
+    const rows = MUSCLE_ORDER.filter((m) => m !== 'Avant-bras').map((m) => {
+      const p = L[m].p, sd = L[m].s, tot = p + sd / 2;
+      const color = tot >= 10 ? 'var(--accent)' : tot >= 6 ? '#FFC24B' : '#9AA3AB';
+      return `<div class="hbar"><span class="n">${m}</span><div class="mbar"><div class="zone"></div><div class="p" style="width:${Math.min(100, (p / max) * 100)}%;background:var(--accent)"></div><div class="s" style="left:${Math.min(100, (p / max) * 100)}%;width:${Math.min(100, (sd / 2 / max) * 100)}%"></div></div><span class="c num" style="color:${color};width:30px">${fr1(Math.round(tot * 2) / 2)}</span></div>`;
+    }).join('');
+    const ratio = PP.pull ? PP.push / PP.pull : null;
+    const cur = pushPull(all.filter((S) => S.date > new Date(Date.now() - 28 * DAY))), curRatio = cur.pull ? cur.push / cur.pull : null;
+    parts.push(`<section class="card">
+      <div class="row"><span class="label">Avec ce programme</span><span class="small">séries / semaine</span></div>
+      <div class="grid2" style="margin-top:10px">
+        <div style="background:#1F1A28;border-radius:12px;padding:10px"><div class="small">Ratio actuel (4 sem.)</div><div class="num" style="font-size:22px;color:#FFB27A">${curRatio ? fr1(curRatio) + ' : 1' : '–'}</div><div class="small">poussée : tirage</div></div>
+        <div style="background:#12261A;border-radius:12px;padding:10px"><div class="small">Ratio du programme</div><div class="num" style="font-size:22px;color:#7EE2A8">${ratio ? fr1(ratio) + ' : 1' : '–'}</div><div class="small">${fr0(PP.push)} séries poussée / ${fr0(PP.pull)} tirage</div></div>
+      </div>
+      <div class="stack" style="gap:9px;margin-top:14px">${rows}</div>
+      <div class="row small" style="padding:6px 30px 0 114px"><span>0</span><span style="color:#8FBF5A">zone utile 10–20</span><span>25</span></div>
+      <p class="small" style="margin:10px 0 0">Muscle principal = 1 série, muscle secondaire = ½. Trapèzes et abdos sont travaillés en complément, sans viser la zone.</p>
+    </section>`);
+    PROGRAMME.forEach((P) => {
+      const total = sum(P.exos, (x) => x.s);
+      parts.push(`<section class="card">
+        <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span></div>
+        ${P.exos.map((x) => { const pr = proposeCharge(x, all); return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(x.e))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
+      </section>`);
+    });
+    parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
+      <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#E3E8D8">Une séance A et une séance B par semaine, avec 2 jours d'écart. Évite de les placer la veille d'une séance de qualité Garmin Coach. Repos 1 min 30 à 2 min entre les séries des gros exercices. Les charges se recalculent après chaque séance enregistrée.</p>
+      <p class="small" style="margin:8px 0 0">Suggestions calculées sur tes séances, pas un avis de coach ou de médecin.</p></section>`);
+    return parts.join('');
+  }
+
+  let MU_VIEW = 'suivi';
   function viewMuscu(now) {
     const all = muscuSessions();
     if (!all.length) return `<section class="card" style="border-style:dashed"><div class="small">Détail des séances</div><p style="margin:6px 0 0;font-size:14px;color:var(--soft)">Le détail de tes séries (exercices, charges, répétitions) n'est pas encore arrivé. Dépose le fichier <b>cockpit-muscu-historique.json</b> sur ton Drive : il sera intégré à la prochaine synchro.</p></section>` + viewMuscuSimple(now);
-    const parts = [];
+    const parts = [`<div class="seg" role="group" aria-label="Vue muscu" style="margin-top:0"><button data-muview="suivi" aria-pressed="${MU_VIEW === 'suivi'}">Mon suivi</button><button data-muview="prog" aria-pressed="${MU_VIEW === 'prog'}">Séances proposées</button></div>`];
+    if (MU_VIEW === 'prog') return parts.join('') + viewProgramme(all);
     const ws = weekStart(now), week = all.filter((S) => S.date >= ws);
     const last28 = all.filter((S) => S.date > new Date(now - 28 * DAY));
 
@@ -981,6 +1078,7 @@
     v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
     if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
     v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+    v.querySelectorAll('[data-muview]').forEach((b) => b.addEventListener('click', () => { MU_VIEW = b.dataset.muview; render(); window.scrollTo(0, 0); }));
     v.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { CO_RACE = b.dataset.race; render(); }));
     v.querySelectorAll('[data-mus]').forEach((b) => b.addEventListener('click', () => { MU_SESSION = b.dataset.mus; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     const pick = v.querySelector('#mu-exo'); if (pick) pick.addEventListener('change', () => { MU_EXO = pick.value; const y = window.scrollY; render(); window.scrollTo(0, y); });
