@@ -197,7 +197,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · noms Strava';
+  const APP_VERSION = '2026-11-12 · noms Strava FR';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -654,25 +654,29 @@
   }
 
   // ---------- MUSCU (détail des séries déposé par la tâche de nuit) ----------
+  // Noms français tels qu'affichés dans l'appli Strava (✓ = confirmés par Anthony, le reste suit le même style)
   const EXO_FR = {
-    'Bench Press': 'Développé couché', 'Dumbbell Bench Press': 'Développé couché haltères', 'Incline Barbell Bench Press': 'Développé incliné barre',
-    'Smith Machine Incline Bench Press': 'Développé incliné Smith', 'Close Grip Dumbbell Chest Press': 'Développé serré haltères', 'Machine Chest Press': 'Presse pectoraux machine',
-    'Machine Isolateral Chest Press': 'Presse pectoraux isolatérale', 'Machine Chest Fly': 'Butterfly machine', 'Low Cable Fly Crossovers': 'Écarté poulie basse', 'Cable Crossover': 'Écarté poulie vis-à-vis',
-    'Chest Dip': 'Dips', 'Front Raise': 'Élévations frontales', 'Barbell Upright Row': 'Tirage menton barre', 'Smith Machine Overhead Press': 'Développé militaire Smith',
-    'Machine Seated Shoulder Press': 'Développé épaules machine', 'Cable Rear Delt Reverse Fly': 'Oiseau poulie', 'Cable Rear Delt Fly': 'Oiseau poulie', 'Machine Rear Delt Reverse Fly': 'Oiseau machine',
-    'Lateral Raise': 'Élévations latérales', 'Dumbbell Lateral Raise': 'Élévations latérales', 'Reverse Grip Barbell Row': 'Rowing barre supination', 'Barbell Row': 'Rowing barre',
-    'Machine Single Arm Seated Row': 'Rowing unilatéral machine', 'Seated Cable Row': 'Tirage horizontal poulie', 'Close Grip Cable Lat Pulldown': 'Tirage vertical prise serrée',
-    'Lat Pulldown': 'Tirage vertical', 'Straight Arm Pulldown': 'Pull-over poulie bras tendus', 'Pull Up': 'Tractions', 'Pull-Up': 'Tractions',
-    '21s Bicep Curl': 'Curl 21', 'Ez Bar Preacher Curl': 'Curl pupitre barre EZ', 'Cable Biceps Curl': 'Curl poulie', 'Barbell Biceps Curl': 'Curl barre', 'Rope Cable Curl': 'Curl marteau corde',
-    'Standing Ez Bar Biceps Curl': 'Curl barre EZ debout', 'Hammer Curl': 'Curl marteau', 'Triceps Pressdown': 'Extension triceps poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps poulie',
-    'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral', 'Cable Overhead Triceps Extension': 'Extension triceps nuque poulie', 'Skull Crusher': 'Barre au front',
-    'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch',
-    'Squat': 'Squat', 'Barbell Back Squat': 'Squat barre', 'Goblet Squat': 'Goblet squat', 'Leg Press': 'Presse à cuisses', 'Lunge': 'Fentes', 'Walking Lunge': 'Fentes marchées',
-    'Bulgarian Split Squat': 'Squat bulgare', 'Romanian Deadlift': 'Soulevé de terre roumain', 'Deadlift': 'Soulevé de terre', 'Leg Extension': 'Leg extension', 'Leg Curl': 'Leg curl',
-    'Seated Leg Curl': 'Leg curl assis', 'Standing Calf Raise': 'Mollets debout', 'Seated Calf Raise': 'Mollets assis', 'Calf Raise': 'Mollets', 'Hip Thrust': 'Hip thrust', 'Step Up': 'Step-up'
+    'Front Raise': 'Élévation frontale', // ✓
+    'Barbell Upright Row': 'Rowing vertical à la barre', // ✓
+    'Smith Machine Overhead Press': 'Développé militaire à la Smith machine', // ✓
+    'Cable Rear Delt Reverse Fly': 'Écarté inversé à la poulie', // ✓
+    'Reverse Grip Barbell Row': 'Rowing à la barre prise inversée', // ✓
+    'Cable Overhead Triceps Extension': 'Extension des triceps au-dessus de la tête', // ✓
+    'Machine Single Arm Seated Row': 'Rowing assis unilatéral à la machine', // ✓
+    'Cable Rear Delt Fly': 'Écarté inversé à la poulie', 'Machine Rear Delt Reverse Fly': 'Écarté inversé à la machine',
+    'Machine Seated Shoulder Press': 'Développé épaules assis à la machine', 'Lateral Raise': 'Élévation latérale', 'Dumbbell Lateral Raise': 'Élévation latérale aux haltères',
+    'Bench Press': 'Développé couché', 'Dumbbell Bench Press': 'Développé couché aux haltères', 'Incline Barbell Bench Press': 'Développé incliné à la barre',
+    'Smith Machine Incline Bench Press': 'Développé incliné à la Smith machine', 'Close Grip Dumbbell Chest Press': 'Développé serré aux haltères',
+    'Machine Chest Press': 'Développé pectoraux à la machine', 'Machine Isolateral Chest Press': 'Développé pectoraux isolatéral à la machine',
+    'Machine Chest Fly': 'Écarté à la machine', 'Low Cable Fly Crossovers': 'Écarté à la poulie basse', 'Cable Crossover': 'Écarté croisé à la poulie', 'Chest Dip': 'Dips pour pectoraux',
+    'Seated Cable Row': 'Rowing assis à la poulie', 'Barbell Row': 'Rowing à la barre', 'Close Grip Cable Lat Pulldown': 'Tirage vertical prise serrée à la poulie',
+    'Lat Pulldown': 'Tirage vertical', 'Straight Arm Pulldown': 'Tirage bras tendus à la poulie', 'Pull Up': 'Traction', 'Pull-Up': 'Traction',
+    '21s Bicep Curl': 'Curl biceps 21', 'Ez Bar Preacher Curl': 'Curl pupitre à la barre EZ', 'Cable Biceps Curl': 'Curl biceps à la poulie', 'Barbell Biceps Curl': 'Curl biceps à la barre',
+    'Rope Cable Curl': 'Curl à la corde à la poulie', 'Standing Ez Bar Biceps Curl': 'Curl biceps debout à la barre EZ', 'Hammer Curl': 'Curl marteau',
+    'Triceps Pressdown': 'Extension des triceps à la poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps à la poulie', 'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral à la poulie',
+    'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch'
   };
-  // Noms affichés tels que fournis par Strava (pas de traduction)
-  const exoFr = (e) => e;
+  const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
     Abdominals: 'Abdos', Obliques: 'Abdos', Core: 'Abdos', Forearms: 'Avant-bras', Quadriceps: 'Jambes', Hamstrings: 'Jambes', Glutes: 'Jambes', Calves: 'Jambes', Adductors: 'Jambes', Abductors: 'Jambes', 'Hip Flexors': 'Jambes', Legs: 'Jambes' };
   // Jambes volontairement absentes : séances au poids du corps à la maison, non enregistrées par la montre
