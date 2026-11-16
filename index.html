@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-16 · synchro 12 h / 20 h';
+  const APP_VERSION = '2026-11-16 · tractions + avant-bras';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -771,7 +771,8 @@
     '21s Bicep Curl': 'Curl biceps 21', 'Ez Bar Preacher Curl': 'Curl pupitre à la barre EZ', 'Cable Biceps Curl': 'Curl biceps à la poulie', 'Barbell Biceps Curl': 'Curl biceps à la barre',
     'Rope Cable Curl': 'Curl à la corde à la poulie', 'Standing Ez Bar Biceps Curl': 'Curl biceps debout à la barre EZ', 'Hammer Curl': 'Curl marteau',
     'Triceps Pressdown': 'Extension des triceps à la poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps à la poulie', 'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral à la poulie',
-    'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Machine Seated Row': 'Rowing assis à la machine',
+    'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Chin Up': 'Traction supination', 'Chin-Up': 'Traction supination', 'Pullup': 'Traction',
+    'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
     'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
@@ -847,12 +848,14 @@
   // Objectif : ratio poussée / tirage ≈ 1 : 1 et chaque muscle dans la zone utile (10–20 séries / semaine),
   // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
   const PROGRAMME = [
-    { id: 'A', titre: 'Séance A · Dos et biceps', sous: 'Tirage + abdos', exos: [
-      { e: 'Close Grip Cable Lat Pulldown', alt: ['Neutral-Grip Lat Pulldown'], s: 4, r: [8, 10] },
+    { id: 'A', titre: 'Séance A · Dos, biceps, avant-bras', sous: 'Tirage + abdos', exos: [
+      { e: 'Pull Up', alt: ['Pull-Up', 'Pullup', 'Chin Up', 'Chin-Up', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
+      { e: 'Close Grip Cable Lat Pulldown', alt: ['Neutral-Grip Lat Pulldown'], s: 3, r: [8, 10] },
       { e: 'Seated Cable Row', alt: ['Machine Seated Row'], s: 4, r: [8, 10] },
       { e: 'Reverse Grip Barbell Row', s: 3, r: [8, 10] },
       { e: 'Cable Rear Delt Reverse Fly', alt: ['Cable Rear Delt Fly'], s: 3, r: [12, 15] },
       { e: 'Ez Bar Preacher Curl', s: 3, r: [10, 12] },
+      { e: 'Barbell Wrist Curl', alt: ['Dumbbell Wrist Curl', 'Wrist Curl', 'Seated Barbell Wrist Curl'], s: 3, r: [12, 15], muscles: ['Forearms'] },
       { e: 'Hanging Knee Raise', s: 3, r: [10, 15], pdc: true, muscles: ['Abdominals'] }
     ] },
     { id: 'B', titre: 'Séance B · Pecs, épaules, triceps', sous: 'Poussée + un peu de tirage + gainage', exos: [
@@ -874,9 +877,9 @@
     const unit = ex.unit || 'reps';
     if (ex.pdc) {
       const last = S ? S.exos.find((y) => names.includes(y.e)) : null;
-      return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : 'Nouveau : au poids du corps.' };
+      return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : `Nouveau : au poids du corps, fais le maximum de répétitions propres (objectif ${ex.r[0]}–${ex.r[1]}). Choisis « ${exoFr(ex.e)} » sur ta montre.` };
     }
-    if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: 'Jamais fait : choisis une charge qui permet ' + ex.r[1] + ' répétitions propres.' };
+    if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Nouveau : choisis une charge qui permet ${ex.r[1]} répétitions propres (pour les avant-bras, commence léger, barre seule ou 15–20 kg).` };
     const raw = (DATA.muscu[S.id].sets || []).filter((x) => names.includes(x[0])).map(([, kg, r, n]) => ({ kg: kg == null || +kg === 0 ? null : +kg, r: +r || 0, n: n || 1 })).filter((x) => x.kg != null);
     const dd = S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
     if (!raw.length) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Dernière fois le ${dd}, sans charge enregistrée.` };
@@ -909,7 +912,7 @@
     const parts = [];
     const { L, PP } = programmeProjection();
     const max = 25;
-    const rows = MUSCLE_ORDER.filter((m) => m !== 'Avant-bras').map((m) => {
+    const rows = MUSCLE_ORDER.map((m) => {
       const p = L[m].p, sd = L[m].s, tot = p + sd / 2;
       const color = tot >= 10 ? 'var(--accent)' : tot >= 6 ? '#FFC24B' : '#9AA3AB';
       return `<div class="hbar"><span class="n">${m}</span><div class="mbar"><div class="zone"></div><div class="p" style="width:${Math.min(100, (p / max) * 100)}%;background:var(--accent)"></div><div class="s" style="left:${Math.min(100, (p / max) * 100)}%;width:${Math.min(100, (sd / 2 / max) * 100)}%"></div></div><span class="c num" style="color:${color};width:30px">${fr1(Math.round(tot * 2) / 2)}</span></div>`;
@@ -924,7 +927,7 @@
       </div>
       <div class="stack" style="gap:9px;margin-top:14px">${rows}</div>
       <div class="row small" style="padding:6px 30px 0 114px"><span>0</span><span style="color:#8FBF5A">zone utile 10–20</span><span>25</span></div>
-      <p class="small" style="margin:10px 0 0">Muscle principal = 1 série, muscle secondaire = ½. Trapèzes et abdos sont travaillés en complément, sans viser la zone.</p>
+      <p class="small" style="margin:10px 0 0">Muscle principal = 1 série, muscle secondaire = ½. Trapèzes, avant-bras et abdos sont travaillés en complément, sans viser la zone.</p>
     </section>`);
     PROGRAMME.forEach((P) => {
       const total = sum(P.exos, (x) => x.s);
