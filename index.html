@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-16 · séances en attente';
+  const APP_VERSION = '2026-11-16 · synchro 12 h / 20 h';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -771,6 +771,7 @@
     '21s Bicep Curl': 'Curl biceps 21', 'Ez Bar Preacher Curl': 'Curl pupitre à la barre EZ', 'Cable Biceps Curl': 'Curl biceps à la poulie', 'Barbell Biceps Curl': 'Curl biceps à la barre',
     'Rope Cable Curl': 'Curl à la corde à la poulie', 'Standing Ez Bar Biceps Curl': 'Curl biceps debout à la barre EZ', 'Hammer Curl': 'Curl marteau',
     'Triceps Pressdown': 'Extension des triceps à la poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps à la poulie', 'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral à la poulie',
+    'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Machine Seated Row': 'Rowing assis à la machine',
     'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
@@ -847,10 +848,10 @@
   // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
   const PROGRAMME = [
     { id: 'A', titre: 'Séance A · Dos et biceps', sous: 'Tirage + abdos', exos: [
-      { e: 'Close Grip Cable Lat Pulldown', s: 4, r: [8, 10] },
-      { e: 'Seated Cable Row', s: 4, r: [8, 10] },
+      { e: 'Close Grip Cable Lat Pulldown', alt: ['Neutral-Grip Lat Pulldown'], s: 4, r: [8, 10] },
+      { e: 'Seated Cable Row', alt: ['Machine Seated Row'], s: 4, r: [8, 10] },
       { e: 'Reverse Grip Barbell Row', s: 3, r: [8, 10] },
-      { e: 'Cable Rear Delt Reverse Fly', s: 3, r: [12, 15] },
+      { e: 'Cable Rear Delt Reverse Fly', alt: ['Cable Rear Delt Fly'], s: 3, r: [12, 15] },
       { e: 'Ez Bar Preacher Curl', s: 3, r: [10, 12] },
       { e: 'Hanging Knee Raise', s: 3, r: [10, 15], pdc: true, muscles: ['Abdominals'] }
     ] },
@@ -860,22 +861,23 @@
       { e: 'Low Cable Fly Crossovers', s: 3, r: [12, 15] },
       { e: 'Smith Machine Overhead Press', s: 3, r: [8, 10] },
       { e: 'Machine Single Arm Seated Row', s: 3, r: [8, 10] },
-      { e: 'Triceps Pressdown', s: 4, r: [10, 12] },
-      { e: 'Plank', s: 3, r: [45, 60], unit: 's', pdc: true, muscles: ['Abdominals'] }
+      { e: 'Triceps Pressdown', alt: ['Cable Triceps Pushdown'], s: 4, r: [10, 12] },
+      { e: 'Plank', s: 3, r: [60, 90], unit: 's', pdc: true, muscles: ['Abdominals'] }
     ] }
   ];
   EXO_FR['Plank'] = EXO_FR['Plank'] || 'Gainage';
 
   // Charge proposée pour un exercice, d'après la dernière séance où il a été fait
   function proposeCharge(ex, all) {
-    const S = all.find((x) => x.exos.some((y) => y.e === ex.e));
+    const names = [ex.e, ...(ex.alt || [])];
+    const S = all.find((x) => x.exos.some((y) => names.includes(y.e)));
     const unit = ex.unit || 'reps';
     if (ex.pdc) {
-      const last = S ? S.exos.find((y) => y.e === ex.e) : null;
+      const last = S ? S.exos.find((y) => names.includes(y.e)) : null;
       return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : 'Nouveau : au poids du corps.' };
     }
     if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: 'Jamais fait : choisis une charge qui permet ' + ex.r[1] + ' répétitions propres.' };
-    const raw = (DATA.muscu[S.id].sets || []).filter((x) => x[0] === ex.e).map(([, kg, r, n]) => ({ kg: kg == null || +kg === 0 ? null : +kg, r: +r || 0, n: n || 1 })).filter((x) => x.kg != null);
+    const raw = (DATA.muscu[S.id].sets || []).filter((x) => names.includes(x[0])).map(([, kg, r, n]) => ({ kg: kg == null || +kg === 0 ? null : +kg, r: +r || 0, n: n || 1 })).filter((x) => x.kg != null);
     const dd = S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
     if (!raw.length) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Dernière fois le ${dd}, sans charge enregistrée.` };
     const ok = raw.filter((x) => x.r >= ex.r[0]);
@@ -885,9 +887,9 @@
     if (minR >= ex.r[1]) {
       // Toutes les séries au maximum de répétitions : on augmente
       let next;
-      if (/machine|cable|pulldown|seated.*row/i.test(ex.e)) {
-        const seen = [...new Set(all.flatMap((x) => (DATA.muscu[x.id].sets || []).filter((y) => y[0] === ex.e).map((y) => +y[1])))].filter((v) => v > W).sort((a, b) => a - b);
-        next = seen.length && seen[0] <= W * 1.15 ? seen[0] : W + 2.5;
+      if (names.some((n) => /machine|cable|pulldown|pressdown|pushdown|seated.*row/i.test(n))) {
+        const seen = [...new Set(all.flatMap((x) => (DATA.muscu[x.id].sets || []).filter((y) => names.includes(y[0])).map((y) => +y[1])))].filter((v) => v > W).sort((a, b) => a - b);
+        next = seen.length && (seen[0] <= W * 1.15 || seen[0] - W <= 2.5) ? seen[0] : W + 2.5;
       } else next = W + (/dumbbell/i.test(ex.e) ? 2 : 2.5);
       return { kg: next, reps: `${ex.r[0]}–${ex.r[1]}`, why: `${lastTxt}. Toutes tes séries au maximum : on monte à ${fr1(next)} kg.`, up: true };
     }
@@ -928,7 +930,7 @@
       const total = sum(P.exos, (x) => x.s);
       parts.push(`<section class="card">
         <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span></div>
-        ${P.exos.map((x) => { const pr = proposeCharge(x, all); return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(x.e))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
+        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
       </section>`);
     });
     parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
@@ -950,7 +952,7 @@
     // Séances de la semaine : comptées depuis Strava (comme le Cockpit), séries et volume depuis le détail reçu
     const weekActs = DATA.acts.filter((a) => a.cat === 'muscu' && a.date >= ws);
     const detailed = new Set(all.map((S) => S.id)), pending = weekActs.filter((a) => !detailed.has(String(a.id)));
-    const nextSync = (() => { const h = new Date().getHours() * 60 + new Date().getMinutes(); return h < 12 * 60 + 47 ? '12 h 47' : h < 22 * 60 + 47 ? '22 h 47' : 'demain 12 h 47'; })();
+    const nextSync = (() => { const h = new Date().getHours() * 60 + new Date().getMinutes(); return h < 12 * 60 ? '12 h' : h < 20 * 60 ? '20 h' : 'demain 12 h'; })();
     parts.push(`<section class="tiles">
       <div class="tile"><span class="t">Cette semaine</span><span class="num v">${weekActs.length}</span><span class="t">séance${weekActs.length > 1 ? 's' : ''}</span></div>
       <div class="tile"><span class="t">Séries</span><span class="num v">${fr0(sum(week, (S) => S.sets))}</span><span class="t">cette semaine</span></div>
@@ -986,7 +988,7 @@
       <div class="verdicts"><div style="background:#12261A"><b style="color:#A8E6B8">${count('up')}</b><span>en progrès</span></div><div style="background:#1F2328"><b>${count('eq')}</b><span>stable</span></div><div style="background:#2A1414"><b style="color:#FF9B8A">${count('down')}</b><span>en baisse</span></div><div style="background:#1F1A28"><b style="color:var(--muscu)">${count('new')}</b><span>nouveau</span></div></div>
       <div class="cmp" style="margin-top:10px"><span class="h">Exercice · comparé au</span><span class="h" style="text-align:right">Charge max</span><span class="h" style="text-align:right">Reps</span></div>
       ${C.map(({ x, p, prevS, verdict }) => { const dk = p ? delta(x.top, p.top, ' kg') : { t: 'nouveau', c: 'new' }, dr = p ? delta(x.reps, p.reps, '') : { t: '', c: 'eq' };
-        return `<div class="cmp"><div style="min-width:0"><div style="font-size:13px">${esc(exoFr(x.e))}</div><div class="small">${p ? `${dd(prevS.date)} : ${kgTxt(p.top, x.e)} · ${p.reps} reps` : '1re fois'}</div></div><div class="r"><span class="v">${kgTxt(x.top, x.e)}</span><span class="d ${dk.c}">${dk.t}</span></div><div class="r"><span class="v">${x.reps}</span><span class="d ${dr.c}">${dr.t}</span></div></div>`; }).join('')}
+        return `<div class="cmp"><div style="min-width:0"><div style="font-size:13px">${esc(exoFr(x.e))}</div><div class="small">${p ? `${dd(prevS.date)} : ${kgTxt(p.top, x.e)} · ${p.reps} reps` : '1re fois'}</div></div><div class="r"><span class="v">${kgTxt(x.top, x.e)}</span><span class="d ${dk.c}">${dk.t}</span></div><div class="r"><span class="v">${x.reps}${/plank|gainage/i.test(x.e) ? ' s' : ''}</span><span class="d ${dr.c}">${dr.t}</span></div></div>`; }).join('')}
       <p class="small" style="margin:10px 0 0">Charge max = ta série la plus lourde ; reps = total des répétitions de l'exercice. PDC = poids du corps ; – = pas de charge enregistrée.</p>
     </section>`);
 
