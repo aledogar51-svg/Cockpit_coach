@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-12 · programme muscu';
+  const APP_VERSION = '2026-11-16 · séances en attente';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -947,11 +947,15 @@
     const last28 = all.filter((S) => S.date > new Date(now - 28 * DAY));
 
     // 1. Cette semaine
+    // Séances de la semaine : comptées depuis Strava (comme le Cockpit), séries et volume depuis le détail reçu
+    const weekActs = DATA.acts.filter((a) => a.cat === 'muscu' && a.date >= ws);
+    const detailed = new Set(all.map((S) => S.id)), pending = weekActs.filter((a) => !detailed.has(String(a.id)));
+    const nextSync = (() => { const h = new Date().getHours() * 60 + new Date().getMinutes(); return h < 12 * 60 + 47 ? '12 h 47' : h < 22 * 60 + 47 ? '22 h 47' : 'demain 12 h 47'; })();
     parts.push(`<section class="tiles">
-      <div class="tile"><span class="t">Cette semaine</span><span class="num v">${week.length}</span><span class="t">séance${week.length > 1 ? 's' : ''}</span></div>
+      <div class="tile"><span class="t">Cette semaine</span><span class="num v">${weekActs.length}</span><span class="t">séance${weekActs.length > 1 ? 's' : ''}</span></div>
       <div class="tile"><span class="t">Séries</span><span class="num v">${fr0(sum(week, (S) => S.sets))}</span><span class="t">cette semaine</span></div>
       <div class="tile"><span class="t">Volume soulevé</span><span class="num v">${fr1(sum(week, (S) => S.vol) / 1000)} t</span><span class="t">charge × reps</span></div>
-    </section>`);
+    </section>${pending.length ? `<p class="small" style="margin:-4px 0 0;color:var(--warn-ic)">⏳ Détail en attente pour ${pending.map((a) => `« ${esc(a.name.replace(/^Entraînement aux poids\s*[-/]?\s*/i, '') || 'séance')} » (${a.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })})`).join(', ')} : arrive avec la synchro de ${nextSync}. Séries et volume ne la comptent pas encore.</p>` : ''}`);
 
     // 2. Équilibre musculaire (4 semaines)
     const L = muscleLoad(last28), weeksN = 4, max = 25;
