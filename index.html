@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-16 · tractions + avant-bras';
+  const APP_VERSION = '2026-11-17 · séance A Garmin';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -772,13 +772,18 @@
     'Rope Cable Curl': 'Curl à la corde à la poulie', 'Standing Ez Bar Biceps Curl': 'Curl biceps debout à la barre EZ', 'Hammer Curl': 'Curl marteau',
     'Triceps Pressdown': 'Extension des triceps à la poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps à la poulie', 'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral à la poulie',
     'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Chin Up': 'Traction supination', 'Chin-Up': 'Traction supination', 'Pullup': 'Traction',
+    'Reverse Wrist Curl': 'Curl poignets prise inversée', 'Reverse Barbell Wrist Curl': 'Curl poignets prise inversée', 'Reverse Grip Wrist Curl': 'Curl poignets prise inversée', 'Lat Pulldown': 'Tirage vertical',
+    'Flye': 'Écarté', 'Fly': 'Écarté', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
-    'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Relevé de genoux suspendu', 'Plank': 'Gainage', 'Crunch': 'Crunch'
+    'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Gainage', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
     Abdominals: 'Abdos', Obliques: 'Abdos', Core: 'Abdos', Forearms: 'Avant-bras', Quadriceps: 'Jambes', Hamstrings: 'Jambes', Glutes: 'Jambes', Calves: 'Jambes', Adductors: 'Jambes', Abductors: 'Jambes', 'Hip Flexors': 'Jambes', Legs: 'Jambes' };
   // Jambes volontairement absentes : séances au poids du corps à la maison, non enregistrées par la montre
+  // « Écarté » générique choisi dans Garmin pour l'écarté inversé à la poulie : compté comme arrière d'épaule (tirage)
+  const REAR_DELT_GENERIC = ['Flye', 'Fly', 'Cable Flye', 'Cable Fly', 'Reverse Flye', 'Reverse Fly'];
+  const MUSCLES_OF = (e) => (REAR_DELT_GENERIC.includes(e) ? ['Shoulders', 'Trapezius'] : (DATA.exercises || {})[e] || []);
   const MUSCLE_ORDER = ['Pectoraux', 'Épaules', 'Dos', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos'];
   const e1rm = (kg, r) => (kg > 0 && r > 0 && r <= 15 ? kg * (1 + r / 30) : null);
   const BODYWEIGHT = /dip|pull.?up|chin.?up|push.?up|knee raise|leg raise|plank|crunch|sit.?up/i;
@@ -810,7 +815,7 @@
     const EX = DATA.exercises || {}, out = {};
     MUSCLE_ORDER.forEach((m) => (out[m] = { p: 0, s: 0 }));
     sessions.forEach((S) => S.exos.forEach((x) => {
-      const ms = [...new Set((EX[x.e] || []).map((m) => MUSCLE_FR[m] || null).filter(Boolean))];
+      const ms = [...new Set(MUSCLES_OF(x.e).map((m) => MUSCLE_FR[m] || null).filter(Boolean))];
       ms.forEach((m, i) => { if (!out[m]) out[m] = { p: 0, s: 0 }; if (i === 0) out[m].p += x.sets; else out[m].s += x.sets; });
     }));
     return out;
@@ -818,8 +823,8 @@
   function pushPull(sessions) {
     const EX = DATA.exercises || {}; let push = 0, pull = 0;
     sessions.forEach((S) => S.exos.forEach((x) => {
-      const first = (EX[x.e] || [])[0];
-      if (/rear delt|reverse fly|row|pulldown|pull.?up|face pull/i.test(x.e) || ['Lats', 'Upper Back', 'Lower Back', 'Trapezius'].includes(first)) pull += x.sets;
+      const first = MUSCLES_OF(x.e)[0];
+      if (REAR_DELT_GENERIC.includes(x.e) || /rear delt|reverse fly|row|pulldown|pull.?up|face pull/i.test(x.e) || ['Lats', 'Upper Back', 'Lower Back', 'Trapezius'].includes(first)) pull += x.sets;
       else if (['Chest', 'Triceps'].includes(first) || (first === 'Shoulders' && /press/i.test(x.e))) push += x.sets;
     }));
     return { push, pull };
@@ -848,15 +853,15 @@
   // Objectif : ratio poussée / tirage ≈ 1 : 1 et chaque muscle dans la zone utile (10–20 séries / semaine),
   // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
   const PROGRAMME = [
-    { id: 'A', titre: 'Séance A · Dos, biceps, avant-bras', sous: 'Tirage + abdos', exos: [
+    { id: 'A', titre: 'Séance A · Dos, biceps, avant-bras', sous: 'Ton entraînement Garmin « Cockpit A »', exos: [
       { e: 'Pull Up', alt: ['Pull-Up', 'Pullup', 'Chin Up', 'Chin-Up', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
-      { e: 'Close Grip Cable Lat Pulldown', alt: ['Neutral-Grip Lat Pulldown'], s: 3, r: [8, 10] },
-      { e: 'Seated Cable Row', alt: ['Machine Seated Row'], s: 4, r: [8, 10] },
-      { e: 'Reverse Grip Barbell Row', s: 3, r: [8, 10] },
-      { e: 'Cable Rear Delt Reverse Fly', alt: ['Cable Rear Delt Fly'], s: 3, r: [12, 15] },
+      { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10] },
+      { e: 'Seated Cable Row', alt: ['Machine Seated Row', 'Neutral Grip Seated Cable Row', 'V-Grip Seated Cable Row', 'Seated Cable Row Neutral Grip', 'Close Grip Seated Cable Row'], s: 4, r: [8, 10] },
+      { e: 'Straight Arm Pulldown', alt: ['Straight-Arm Pulldown', 'Cable Straight Arm Pulldown', 'Rope Straight Arm Pulldown'], s: 3, r: [10, 12] },
+      { e: 'Cable Rear Delt Reverse Fly', alt: ['Cable Rear Delt Fly', 'Flye', 'Fly', 'Cable Flye', 'Cable Fly', 'Reverse Flye', 'Reverse Fly'], s: 3, r: [12, 15] },
       { e: 'Ez Bar Preacher Curl', s: 3, r: [10, 12] },
-      { e: 'Barbell Wrist Curl', alt: ['Dumbbell Wrist Curl', 'Wrist Curl', 'Seated Barbell Wrist Curl'], s: 3, r: [12, 15], muscles: ['Forearms'] },
-      { e: 'Hanging Knee Raise', s: 3, r: [10, 15], pdc: true, muscles: ['Abdominals'] }
+      { e: 'Reverse Wrist Curl', alt: ['Reverse Barbell Wrist Curl', 'Reverse Grip Wrist Curl', 'Barbell Reverse Wrist Curl', 'Reverse Dumbbell Wrist Curl', 'Barbell Wrist Curl', 'Dumbbell Wrist Curl', 'Wrist Curl'], s: 3, r: [12, 15], muscles: ['Forearms'] },
+      { e: 'Hanging Knee Raise', alt: ['Hanging Knee Tuck', 'Knee Raise'], s: 3, r: [10, 15], pdc: true, muscles: ['Abdominals'] }
     ] },
     { id: 'B', titre: 'Séance B · Pecs, épaules, triceps', sous: 'Poussée + un peu de tirage + gainage', exos: [
       { e: 'Smith Machine Incline Bench Press', s: 4, r: [8, 10] },
