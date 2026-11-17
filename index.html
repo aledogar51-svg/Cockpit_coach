@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-17 · séance B corrigée';
+  const APP_VERSION = '2026-11-17 · écarté poulie basse';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -773,7 +773,7 @@
     'Triceps Pressdown': 'Extension des triceps à la poulie haute', 'Cable Triceps Pushdown': 'Pushdown triceps à la poulie', 'Cable Single-Arm Triceps Pushdown': 'Pushdown triceps unilatéral à la poulie',
     'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Chin Up': 'Traction supination', 'Chin-Up': 'Traction supination', 'Pullup': 'Traction',
     'Reverse Wrist Curl': 'Curl poignets prise inversée', 'Reverse Barbell Wrist Curl': 'Curl poignets prise inversée', 'Reverse Grip Wrist Curl': 'Curl poignets prise inversée', 'Lat Pulldown': 'Tirage vertical',
-    'Flye': 'Écarté (pecs)', 'Fly': 'Écarté (pecs)', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
+    'Flye': 'Écarté', 'Fly': 'Écarté', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
     'Shoulder Press': 'Développé militaire', 'Overhead Press': 'Développé militaire', 'Military Press': 'Développé militaire', 'Dumbbell Shoulder Press': 'Développé militaire aux haltères', 'Front Plank': 'Planche',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
     'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
@@ -784,7 +784,7 @@
   // Jambes volontairement absentes : séances au poids du corps à la maison, non enregistrées par la montre
   // « Écarté » générique choisi dans Garmin pour l'écarté inversé à la poulie : compté comme arrière d'épaule (tirage)
   const REAR_DELT_GENERIC = ['Cable Cross Extension', 'Cable Crossover Extension', 'Cross Cable Extension', 'Cable Cross Over Extension', 'Cable Cross-Over Reverse Fly', 'Cable Crossover Reverse Fly', 'Reverse Cable Crossover'];
-  const CHEST_GENERIC = ['Flye', 'Fly', 'Pec Deck', 'Pec Deck Fly', 'Butterfly', 'Machine Fly'];
+  const CHEST_GENERIC = ['Flye', 'Fly', 'Cable Flye', 'Cable Fly'];
   const MUSCLES_OF = (e) => (REAR_DELT_GENERIC.includes(e) ? ['Shoulders', 'Trapezius'] : CHEST_GENERIC.includes(e) ? ['Chest', 'Shoulders'] : (DATA.exercises || {})[e] || []);
   const MUSCLE_ORDER = ['Pectoraux', 'Épaules', 'Dos', 'Trapèzes', 'Biceps', 'Triceps', 'Avant-bras', 'Abdos'];
   const e1rm = (kg, r) => (kg > 0 && r > 0 && r <= 15 ? kg * (1 + r / 30) : null);
@@ -868,7 +868,7 @@
     { id: 'B', titre: 'Séance B · Pecs, épaules, triceps', sous: 'Ton entraînement Garmin « Cockpit B »', exos: [
       { e: 'Bench Press', alt: ['Barbell Bench Press'], s: 3, r: [8, 10], echauf: 'Échauffement : 1 × 10 à 40 kg.' },
       { e: 'Smith Machine Incline Bench Press', alt: ['Smith Incline Bench Press'], s: 3, r: [8, 10] },
-      { e: 'Machine Chest Fly', alt: ['Flye', 'Fly', 'Pec Deck', 'Pec Deck Fly', 'Butterfly', 'Machine Fly'], s: 3, r: [10, 12] },
+      { e: 'Flye', alt: ['Fly', 'Cable Flye', 'Cable Fly', 'Low Cable Fly Crossovers', 'Low Cable Crossover'], label: 'Écarté (croisé à la poulie basse)', s: 3, r: [12, 15], muscles: ['Chest', 'Shoulders'] },
       { e: 'Shoulder Press', alt: ['Military Press', 'Overhead Press', 'Dumbbell Shoulder Press', 'Seated Dumbbell Shoulder Press', 'Standing Dumbbell Shoulder Press', 'Dumbbell Overhead Press', 'Dumbbell Military Press'], s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : aux haltères, 18 kg par haltère pour démarrer.', departKg: 18 },
       { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'] },
       { e: 'Triceps Pressdown', alt: ['Cable Triceps Pushdown'], s: 4, r: [10, 12] },
@@ -942,7 +942,7 @@
       const total = sum(P.exos, (x) => x.s);
       parts.push(`<section class="card">
         <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span></div>
-        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
+        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(x.label || exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
       </section>`);
     });
     parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
