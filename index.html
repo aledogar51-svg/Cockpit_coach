@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-17 · séance B Garmin';
+  const APP_VERSION = '2026-11-17 · séance B corrigée';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -774,7 +774,7 @@
     'Neutral-Grip Lat Pulldown': 'Tirage vertical prise neutre', 'Chin Up': 'Traction supination', 'Chin-Up': 'Traction supination', 'Pullup': 'Traction',
     'Reverse Wrist Curl': 'Curl poignets prise inversée', 'Reverse Barbell Wrist Curl': 'Curl poignets prise inversée', 'Reverse Grip Wrist Curl': 'Curl poignets prise inversée', 'Lat Pulldown': 'Tirage vertical',
     'Flye': 'Écarté (pecs)', 'Fly': 'Écarté (pecs)', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
-    'Smith Machine Bench Press': 'Développé couché à la Smith machine', 'Barbell Shoulder Press': 'Développé militaire à la barre', 'Overhead Press': 'Développé militaire à la barre', 'Military Press': 'Développé militaire à la barre', 'Front Plank': 'Planche',
+    'Shoulder Press': 'Développé militaire', 'Overhead Press': 'Développé militaire', 'Military Press': 'Développé militaire', 'Dumbbell Shoulder Press': 'Développé militaire aux haltères', 'Front Plank': 'Planche',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
     'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
   };
@@ -867,9 +867,9 @@
     ] },
     { id: 'B', titre: 'Séance B · Pecs, épaules, triceps', sous: 'Ton entraînement Garmin « Cockpit B »', exos: [
       { e: 'Bench Press', alt: ['Barbell Bench Press'], s: 3, r: [8, 10], echauf: 'Échauffement : 1 × 10 à 40 kg.' },
-      { e: 'Smith Machine Bench Press', alt: ['Smith Machine Flat Bench Press', 'Smith Bench Press'], s: 3, r: [8, 10], muscles: ['Chest', 'Triceps', 'Shoulders'], depart: 'Nouveau : commence vers 55 kg (tu fais 61 kg en incliné à la Smith), puis l\'appli ajustera.' },
+      { e: 'Smith Machine Incline Bench Press', alt: ['Smith Incline Bench Press'], s: 3, r: [8, 10] },
       { e: 'Machine Chest Fly', alt: ['Flye', 'Fly', 'Pec Deck', 'Pec Deck Fly', 'Butterfly', 'Machine Fly'], s: 3, r: [10, 12] },
-      { e: 'Barbell Shoulder Press', alt: ['Overhead Press', 'Barbell Overhead Press', 'Military Press', 'Standing Barbell Shoulder Press', 'Seated Barbell Shoulder Press', 'Barbell Military Press'], s: 3, r: [8, 10], muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : à la barre libre, commence vers 35 kg (tu fais 46 kg à la Smith, la barre libre demande plus de stabilité).' },
+      { e: 'Shoulder Press', alt: ['Military Press', 'Overhead Press', 'Dumbbell Shoulder Press', 'Seated Dumbbell Shoulder Press', 'Standing Dumbbell Shoulder Press', 'Dumbbell Overhead Press', 'Dumbbell Military Press'], s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : aux haltères, 18 kg par haltère pour démarrer.', departKg: 18 },
       { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'] },
       { e: 'Triceps Pressdown', alt: ['Cable Triceps Pushdown'], s: 4, r: [10, 12] },
       { e: 'Chest Dip', alt: ['Dip', 'Dips', 'Triceps Dip', 'Bench Dip'], s: 3, r: [10, 15], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
@@ -887,7 +887,7 @@
       const last = S ? S.exos.find((y) => names.includes(y.e)) : null;
       return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : `Nouveau : au poids du corps, fais le maximum de répétitions propres (objectif ${ex.r[0]}–${ex.r[1]}). Choisis « ${exoFr(ex.e)} » sur ta montre.` };
     }
-    if (!S && ex.depart) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: ex.depart };
+    if (!S && ex.depart) return { kg: ex.departKg ?? null, reps: `${ex.r[0]}–${ex.r[1]}`, why: ex.depart };
     if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Nouveau : choisis une charge qui permet ${ex.r[1]} répétitions propres (pour les avant-bras, commence léger, barre seule ou 15–20 kg).` };
     const raw = (DATA.muscu[S.id].sets || []).filter((x) => names.includes(x[0])).map(([, kg, r, n]) => ({ kg: kg == null || +kg === 0 ? null : +kg, r: +r || 0, n: n || 1 })).filter((x) => x.kg != null);
     const dd = S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
@@ -902,7 +902,7 @@
       if (names.some((n) => /machine|cable|pulldown|pressdown|pushdown|seated.*row/i.test(n))) {
         const seen = [...new Set(all.flatMap((x) => (DATA.muscu[x.id].sets || []).filter((y) => names.includes(y[0])).map((y) => +y[1])))].filter((v) => v > W).sort((a, b) => a - b);
         next = seen.length && (seen[0] <= W * 1.15 || seen[0] - W <= 2.5) ? seen[0] : W + 2.5;
-      } else next = W + (/dumbbell/i.test(ex.e) ? 2 : 2.5);
+      } else next = W + (ex.inc || (/dumbbell/i.test(ex.e) ? 2 : 2.5));
       return { kg: next, reps: `${ex.r[0]}–${ex.r[1]}`, why: `${lastTxt}. Toutes tes séries au maximum : on monte à ${fr1(next)} kg.`, up: true };
     }
     return { kg: W, reps: `${ex.r[0]}–${ex.r[1]}`, why: `${lastTxt}. Vise ${ex.r[1]} répétitions sur chaque série avant d'augmenter.` };
@@ -942,7 +942,7 @@
       const total = sum(P.exos, (x) => x.s);
       parts.push(`<section class="card">
         <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span></div>
-        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
+        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
       </section>`);
     });
     parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
