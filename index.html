@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · séances C et D';
+  const APP_VERSION = '2026-11-18 · alias barre au front';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -776,7 +776,7 @@
     'Flye': 'Écarté', 'Fly': 'Écarté', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
     'Shoulder Press': 'Développé militaire', 'Overhead Press': 'Développé militaire', 'Military Press': 'Développé militaire', 'Dumbbell Shoulder Press': 'Développé militaire aux haltères', 'Front Plank': 'Planche',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
-    'Skull Crusher': 'Barre au front', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
+    'Skull Crusher': 'Barre au front', 'Lying Triceps Extension': 'Extension triceps allongé', 'Lying EZ-Bar Triceps Extension': 'Extension triceps allongé à la barre EZ', 'Dumbbell Lying Triceps Extension': 'Extension triceps allongé aux haltères', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
@@ -892,7 +892,7 @@
       { e: 'Push Up', alt: ['Push-Up', 'Pushup'], label: 'Pompes', s: 3, r: [12, 20], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
       { e: 'Arnold Press', alt: ['Dumbbell Arnold Press', 'Seated Arnold Press'], label: 'Développé Arnold', s: 3, r: [10, 12], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : assis, commence vers 14 kg par haltère.', departKg: 14 },
       { e: 'Chin Up', alt: ['Chin-Up', 'Chinup'], label: 'Traction supination', s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
-      { e: 'Skull Crusher', alt: ['EZ Bar Skull Crusher', 'Lying Triceps Extension'], label: 'Barre au front', s: 3, r: [10, 12] },
+      { e: 'Skull Crusher', alt: ['EZ Bar Skull Crusher', 'EZ-Bar Skullcrusher', 'Skullcrusher', 'Lying Triceps Extension', 'Lying EZ-Bar Triceps Extension', 'EZ-Bar Lying Triceps Extension', 'Barbell Lying Triceps Extension', 'Dumbbell Lying Triceps Extension'], label: 'Barre au front', s: 3, r: [10, 12] },
       { e: 'Dumbbell Biceps Curl', alt: ['Dumbbell Curl', 'Standing Dumbbell Biceps Curl', 'Alternating Dumbbell Curl'], label: 'Curl biceps aux haltères', s: 3, r: [10, 12], inc: 2, unite: 'par haltère', muscles: ['Biceps'], depart: 'Nouveau : commence vers 12 kg par haltère.', departKg: 12 },
       { e: 'Crunch', alt: ['Crunches', 'Abdominal Crunch'], label: 'Crunch', s: 3, r: [15, 25], pdc: true, muscles: ['Abdominals'] }
     ] }
