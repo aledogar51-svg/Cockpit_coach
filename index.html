@@ -111,6 +111,7 @@
   .cmp{display:grid;grid-template-columns:minmax(0,1fr) 70px 54px;gap:2px 10px;align-items:center;padding:7px 0;border-bottom:1px solid #1F2328}
   .cmp .h{font-size:11px;color:var(--muted)} .cmp .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end}
   .cmp .v{font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700} .d{font-size:11px} .d.up{color:#A8E6B8} .d.down{color:#FF9B8A} .d.eq{color:var(--muted)} .d.new{color:var(--muscu)}
+  .tcmp{display:grid;gap:2px 8px;align-items:center;padding:7px 0;border-bottom:1px solid #1F2328} .tcmp .r{text-align:right;display:flex;flex-direction:column;align-items:flex-end} .tcmp .v{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;white-space:nowrap} .tcmp .small{font-size:10.5px}
   .verdicts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px} .verdicts div{border-radius:10px;padding:8px;text-align:center} .verdicts b{display:block;font-family:'Space Grotesk',sans-serif;font-size:18px} .verdicts span{font-size:11px;color:var(--muted)}
   select.pick{width:100%;min-height:44px;border-radius:12px;border:1px solid #2A2F35;background:var(--bg);color:var(--ink);padding:0 12px;font-size:14px;margin-top:10px}
   .mbar{flex:1;position:relative;height:12px;background:var(--line);border-radius:6px;overflow:hidden} .mbar .zone{position:absolute;left:40%;width:40%;top:0;bottom:0;background:#26331C} .mbar .p{position:absolute;left:0;top:0;bottom:0} .mbar .s{position:absolute;top:0;bottom:0;background:#5C6B2A}
@@ -201,7 +202,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · roulement A B C D';
+  const APP_VERSION = '2026-11-18 · progression par séance';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -791,7 +792,7 @@
   const BODYWEIGHT = /dip|pull.?up|chin.?up|push.?up|knee raise|leg raise|plank|crunch|sit.?up/i;
   const ISOLATION = /fly|crossover|raise|curl|pushdown|pressdown|extension|skull|kickback|shrug|calf/i;
   const kgTxt = (v, e) => (v == null ? (e && BODYWEIGHT.test(e) ? 'PDC' : '–') : `${fr1(v)} kg`);
-  let MU_SESSION = null, MU_EXO = null;
+  let MU_SESSION = null, MU_EXO = null, MU_TYPE = null;
 
   // Séances de muscu avec détail, de la plus récente à la plus ancienne
   function muscuSessions() {
@@ -998,14 +999,14 @@
       });
       return best ? { id: best.id, how: 'exos' } : null;
     };
-    acts.forEach((a) => { const S = byId.get(String(a.id)); seen.add(String(a.id)); const r = identify(a.name, S); list.push({ date: a.date, r }); });
-    all.forEach((S) => { if (!seen.has(S.id)) list.push({ date: S.date, r: identify(S.name, S) }); });
+    acts.forEach((a) => { const S = byId.get(String(a.id)); seen.add(String(a.id)); const r = identify(a.name, S); list.push({ date: a.date, r, S, name: a.name }); });
+    all.forEach((S) => { if (!seen.has(S.id)) list.push({ date: S.date, r: identify(S.name, S), S, name: S.name }); });
     list.sort((x, y) => y.date - x.date);
     const lastOf = {}; list.forEach((x) => { if (x.r && !lastOf[x.r.id]) lastOf[x.r.id] = x.date; });
     const last = list.find((x) => x.r);
     const ids = PROGRAMME.map((P) => P.id);
     const next = last ? ids[(ids.indexOf(last.r.id) + 1) % ids.length] : ids[0];
-    return { lastOf, last, next };
+    return { lastOf, last, next, list };
   }
   function rotationCard(all, now) {
     const R = rotationInfo(all), dd = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
@@ -1059,22 +1060,43 @@
       <p class="small" style="margin:10px 0 0">Calculé exercice par exercice d'après les muscles que Strava associe à chaque mouvement.</p>
     </section>`);
 
-    // 3. Est-ce que je progresse ? (comparaison avec la fois précédente)
-    if (!MU_SESSION || !all.some((S) => S.id === MU_SESSION)) MU_SESSION = all[0].id;
-    const S = all.find((x) => x.id === MU_SESSION), C = compareSession(S, all);
-    const count = (v) => C.filter((c) => c.verdict === v).length;
-    const dd = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
-    parts.push(`<section class="card">
-      <div class="row"><span class="label">Est-ce que je progresse ?</span><span class="small">vs la fois précédente</span></div>
-      <div class="seg" role="group" aria-label="Séance">${all.slice(0, 4).map((x) => `<button data-mus="${esc(x.id)}" aria-pressed="${x.id === S.id}">${esc(x.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' }))}</button>`).join('')}</div>
-      <div class="small" style="margin-top:8px;color:var(--soft)">${esc(S.name)} · ${S.sets} séries · ${fr1(S.vol / 1000)} t${S.dur ? ' · ' + dur(S.dur) : ''}</div>
-      <div class="verdicts"><div style="background:#12261A"><b style="color:#A8E6B8">${count('up')}</b><span>en progrès</span></div><div style="background:#1F2328"><b>${count('eq')}</b><span>stable</span></div><div style="background:#2A1414"><b style="color:#FF9B8A">${count('down')}</b><span>en baisse</span></div><div style="background:#1F1A28"><b style="color:var(--muscu)">${count('new')}</b><span>nouveau</span></div></div>
-      <div class="cmp" style="margin-top:10px"><span class="h">Exercice · comparé au</span><span class="h" style="text-align:right">Charge max</span><span class="h" style="text-align:right">Reps</span></div>
-      ${C.map(({ x, p, prevS, verdict }) => { const dk = p ? delta(x.top, p.top, ' kg') : { t: 'nouveau', c: 'new' }, dr = p ? delta(x.reps, p.reps, '') : { t: '', c: 'eq' };
-        return `<div class="cmp"><div style="min-width:0"><div style="font-size:13px">${esc(exoFr(x.e))}</div><div class="small">${p ? `${dd(prevS.date)} : ${kgTxt(p.top, x.e)} · ${p.reps} reps` : '1re fois'}</div></div><div class="r"><span class="v">${kgTxt(x.top, x.e)}</span><span class="d ${dk.c}">${dk.t}</span></div><div class="r"><span class="v">${x.reps}${/plank|gainage/i.test(x.e) ? ' s' : ''}</span><span class="d ${dr.c}">${dr.t}</span></div></div>`; }).join('')}
-      <p class="small" style="margin:10px 0 0">Charge max = ta série la plus lourde ; reps = total des répétitions de l'exercice. PDC = poids du corps ; – = pas de charge enregistrée.</p>
-    </section>`);
+    // 3. Est-ce que je progresse ? Comparaison des 4 dernières séances du même type (A, B, C ou D)
+    {
+      const R = rotationInfo(all), dd = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+      if (!MU_TYPE) MU_TYPE = R.last ? R.last.r.id : 'A';
+      const P = PROGRAMME.find((x) => x.id === MU_TYPE);
+      const ofType = R.list.filter((x) => x.r && x.r.id === MU_TYPE);
+      const done = ofType.filter((x) => x.S).slice(0, 4).reverse(), waiting = ofType.filter((x) => !x.S);
+      const cellOf = (S, ex) => { const names = [ex.e, ...(ex.alt || [])]; return S.exos.find((y) => names.includes(y.e)) || null; };
+      const verdictOf = (x, p) => { if (!x || !p) return null; const kA = x.top ?? 0, kB = p.top ?? 0;
+        return kA > kB || (kA === kB && x.reps > p.reps) ? 'up' : kA < kB || (kA === kB && x.reps < p.reps) ? 'down' : 'eq'; };
+      const n = done.length, cols = `grid-template-columns:minmax(0,1fr) repeat(${Math.max(n, 1)},${n > 3 ? 54 : 62}px)`;
+      const counts = { up: 0, eq: 0, down: 0 };
+      const rows = P.exos.map((ex) => {
+        const cells = done.map((d) => cellOf(d.S, ex));
+        const shown = cells.filter(Boolean).pop();
+        const prevOf = (i) => { for (let j = i - 1; j >= 0; j--) if (cells[j]) return cells[j]; return null; };
+        const vLast = n >= 2 ? verdictOf(cells[n - 1], prevOf(n - 1)) : null; if (vLast) counts[vLast]++;
+        const isS = ex.unit === 's';
+        return `<div class="tcmp" style="${cols}"><div style="min-width:0;font-size:12.5px;line-height:1.25">${esc(ex.label || exoFr(shown ? shown.e : ex.e))}</div>${cells.map((c, i) => {
+          if (!c) return '<div class="r"><span class="v" style="color:var(--muted)">–</span></div>';
+          const v = verdictOf(c, prevOf(i)), arrow = v === 'up' ? '↑' : v === 'down' ? '↓' : v === 'eq' ? '=' : '';
+          return `<div class="r"><span class="v">${c.top != null ? fr1(c.top) : (isS ? '' : 'PDC')}${arrow ? ` <span class="d ${v}">${arrow}</span>` : ''}</span><span class="small">${c.sets}×${Math.round(c.reps / c.sets)}${isS ? ' s' : ''}</span></div>`; }).join('') || '<div></div>'}</div>`;
+      }).join('');
+      const last = done[n - 1];
+      parts.push(`<section class="card">
+        <div class="row"><span class="label">Est-ce que je progresse ?</span><span class="small">mêmes séances</span></div>
+        <div class="seg" role="group" aria-label="Type de séance">${PROGRAMME.map((x) => `<button data-mutype="${x.id}" aria-pressed="${x.id === MU_TYPE}">Séance ${x.id}</button>`).join('')}</div>
+        <div class="small" style="margin-top:8px;color:var(--soft)">${esc(P.titre.replace(/^Séance [A-D] · /, ''))}${last ? ` · dernière le ${dd(last.date)}, ${last.S.sets} séries, ${fr1(last.S.vol / 1000)} t` : ''}</div>
+        ${n >= 2 ? `<div class="verdicts" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div style="background:#12261A"><b style="color:#A8E6B8">${counts.up}</b><span>en progrès</span></div><div style="background:#1F2328"><b>${counts.eq}</b><span>stable</span></div><div style="background:#2A1414"><b style="color:#FF9B8A">${counts.down}</b><span>en baisse</span></div></div><div class="small" style="margin-top:6px">Dernière séance ${MU_TYPE} comparée à la précédente.</div>` : ''}
+        ${n ? `<div class="tcmp" style="${cols};margin-top:8px"><span class="small">Exercice</span>${done.map((d) => `<span class="small" style="text-align:right">${dd(d.date)}</span>`).join('')}</div>${rows}` : ''}
+        ${n === 0 ? `<p style="margin:12px 0 0;font-size:14px;color:var(--soft)">Pas encore de séance ${MU_TYPE} enregistrée${waiting.length ? ' avec son détail' : ''}. Le tableau se remplira au fil de tes séances ${MU_TYPE}, et la comparaison commence dès la 2<sup>e</sup>.</p>` : n === 1 ? `<p class="small" style="margin:10px 0 0">Une seule séance ${MU_TYPE} pour l'instant : la comparaison démarre à la prochaine.</p>` : ''}
+        ${waiting.length ? `<p class="small" style="margin:8px 0 0;color:var(--warn-ic)">⏳ ${waiting.map((w) => dd(w.date)).join(', ')} : détail en attente de la prochaine synchro.</p>` : ''}
+        <p class="small" style="margin:10px 0 0">Par case : charge la plus lourde (kg) et séries × répétitions moyennes. ↑ = plus lourd, ou même charge avec plus de répétitions, que la séance ${MU_TYPE} d'avant. PDC = poids du corps.</p>
+      </section>`);
+    }
 
+    const dd = (d) => d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
     // 4. Progression par exercice (1RM estimé)
     const hist = new Map();
     all.slice().reverse().forEach((Sx) => Sx.exos.forEach((x) => { if (x.best) { if (!hist.has(x.e)) hist.set(x.e, []); hist.get(x.e).push({ date: Sx.date, best: x.best, top: x.top, topReps: x.topReps }); } }));
@@ -1170,6 +1192,7 @@
     v.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => { PROG_FREQ = +b.dataset.freq; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     v.querySelectorAll('[data-muview]').forEach((b) => b.addEventListener('click', () => { MU_VIEW = b.dataset.muview; render(); window.scrollTo(0, 0); }));
     v.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { CO_RACE = b.dataset.race; render(); }));
+    v.querySelectorAll('[data-mutype]').forEach((b) => b.addEventListener('click', () => { MU_TYPE = b.dataset.mutype; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     v.querySelectorAll('[data-mus]').forEach((b) => b.addEventListener('click', () => { MU_SESSION = b.dataset.mus; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     const pick = v.querySelector('#mu-exo'); if (pick) pick.addEventListener('change', () => { MU_EXO = pick.value; const y = window.scrollY; render(); window.scrollTo(0, y); });
     v.querySelectorAll('[data-prog]').forEach((b) => b.addEventListener('click', () => { PROG = b.dataset.prog; const y = window.scrollY; render(); window.scrollTo(0, y); }));
