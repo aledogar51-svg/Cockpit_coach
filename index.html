@@ -202,7 +202,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · progression par séance';
+  const APP_VERSION = '2026-11-18 · séances Cockpit uniquement';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -987,18 +987,8 @@
     const byId = new Map(all.map((S) => [S.id, S]));
     const acts = DATA.acts.filter((a) => a.cat === 'muscu').sort((x, y) => y.date - x.date);
     const seen = new Set(), list = [];
-    const identify = (name, S) => {
-      const m = /cockpit\s*([abcd])\b|s[ée]ance\s*([abcd])\b/i.exec(name || '');
-      if (m) return { id: (m[1] || m[2]).toUpperCase(), how: 'nom' };
-      if (!S) return null;
-      let best = null;
-      PROGRAMME.forEach((P) => {
-        const hit = P.exos.filter((x) => S.exos.some((y) => [x.e, ...(x.alt || [])].includes(y.e))).length;
-        const sc = hit / P.exos.length;
-        if (hit >= 3 && sc >= 0.5 && (!best || sc > best.sc)) best = { id: P.id, sc };
-      });
-      return best ? { id: best.id, how: 'exos' } : null;
-    };
+    // Seules les séances enregistrées depuis Garmin sous le nom « Cockpit A/B/C/D » comptent
+    const identify = (name) => { const m = /cockpit\s*([abcd])\b/i.exec(name || ''); return m ? { id: m[1].toUpperCase(), how: 'nom' } : null; };
     acts.forEach((a) => { const S = byId.get(String(a.id)); seen.add(String(a.id)); const r = identify(a.name, S); list.push({ date: a.date, r, S, name: a.name }); });
     all.forEach((S) => { if (!seen.has(S.id)) list.push({ date: S.date, r: identify(S.name, S), S, name: S.name }); });
     list.sort((x, y) => y.date - x.date);
@@ -1017,7 +1007,7 @@
       <div class="row"><span class="label">Mon roulement</span><span class="small">A → B → C → D</span></div>
       <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px">${PROGRAMME.map((x) => { const isN = x.id === R.next, isL = R.last && R.last.r.id === x.id; return `<div style="border-radius:12px;padding:10px 6px;text-align:center;background:${isN ? 'var(--muscu)' : '#1F2328'};color:${isN ? '#14101C' : 'inherit'};${isL ? 'outline:2px solid var(--muscu);outline-offset:-2px' : ''}"><div class="num" style="font-size:22px;font-weight:700">${x.id}</div><div style="font-size:10px;margin-top:2px;${isN ? 'font-weight:700' : 'color:var(--muted)'}">${isN ? 'à faire' : R.lastOf[x.id] ? R.lastOf[x.id].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'pas encore'}</div></div>`; }).join('')}</div>
       <p style="margin:12px 0 0;font-size:14px;line-height:1.45">${R.last ? `Dernière : <b>séance ${R.last.r.id}</b> (${dd(R.last.date)}, ${agoTxt}).` : 'Aucune séance du programme reconnue pour l’instant.'} Prochaine : <b style="color:var(--muscu)">séance ${R.next}</b>${P ? ` · ${esc(P.titre.replace(/^Séance [A-D] · /, ''))}` : ''}.${ago === 0 ? ' Laisse au moins un jour de repos avant.' : ''}</p>
-      <p class="small" style="margin:6px 0 0">Reconnue par le nom de l'activité (« Cockpit A »…) ou par ses exercices.</p>
+      <p class="small" style="margin:6px 0 0">Seules tes séances enregistrées « Cockpit A », « Cockpit B »… comptent.</p>
     </section>`;
   }
 
@@ -1090,7 +1080,7 @@
         <div class="small" style="margin-top:8px;color:var(--soft)">${esc(P.titre.replace(/^Séance [A-D] · /, ''))}${last ? ` · dernière le ${dd(last.date)}, ${last.S.sets} séries, ${fr1(last.S.vol / 1000)} t` : ''}</div>
         ${n >= 2 ? `<div class="verdicts" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div style="background:#12261A"><b style="color:#A8E6B8">${counts.up}</b><span>en progrès</span></div><div style="background:#1F2328"><b>${counts.eq}</b><span>stable</span></div><div style="background:#2A1414"><b style="color:#FF9B8A">${counts.down}</b><span>en baisse</span></div></div><div class="small" style="margin-top:6px">Dernière séance ${MU_TYPE} comparée à la précédente.</div>` : ''}
         ${n ? `<div class="tcmp" style="${cols};margin-top:8px"><span class="small">Exercice</span>${done.map((d) => `<span class="small" style="text-align:right">${dd(d.date)}</span>`).join('')}</div>${rows}` : ''}
-        ${n === 0 ? `<p style="margin:12px 0 0;font-size:14px;color:var(--soft)">Pas encore de séance ${MU_TYPE} enregistrée${waiting.length ? ' avec son détail' : ''}. Le tableau se remplira au fil de tes séances ${MU_TYPE}, et la comparaison commence dès la 2<sup>e</sup>.</p>` : n === 1 ? `<p class="small" style="margin:10px 0 0">Une seule séance ${MU_TYPE} pour l'instant : la comparaison démarre à la prochaine.</p>` : ''}
+        ${n === 0 ? `<p style="margin:12px 0 0;font-size:14px;color:var(--soft)">Pas encore de séance « Cockpit ${MU_TYPE} » enregistrée${waiting.length ? ' avec son détail' : ''}. Le tableau se remplira au fil de tes séances ${MU_TYPE}, et la comparaison commence dès la 2<sup>e</sup>.</p>` : n === 1 ? `<p class="small" style="margin:10px 0 0">Une seule séance ${MU_TYPE} pour l'instant : la comparaison démarre à la prochaine.</p>` : ''}
         ${waiting.length ? `<p class="small" style="margin:8px 0 0;color:var(--warn-ic)">⏳ ${waiting.map((w) => dd(w.date)).join(', ')} : détail en attente de la prochaine synchro.</p>` : ''}
         <p class="small" style="margin:10px 0 0">Par case : charge la plus lourde (kg) et séries × répétitions moyennes. ↑ = plus lourd, ou même charge avec plus de répétitions, que la séance ${MU_TYPE} d'avant. PDC = poids du corps.</p>
       </section>`);
