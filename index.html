@@ -202,7 +202,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · séances Cockpit uniquement';
+  const APP_VERSION = '2026-11-18 · noms Strava séance B';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -870,8 +870,8 @@
       { e: 'Bench Press', alt: ['Barbell Bench Press'], s: 3, r: [8, 10], echauf: 'Échauffement : 1 × 10 à 40 kg.' },
       { e: 'Smith Machine Incline Bench Press', alt: ['Smith Incline Bench Press'], s: 3, r: [8, 10] },
       { e: 'Flye', alt: ['Fly', 'Cable Flye', 'Cable Fly', 'Low Cable Fly Crossovers', 'Low Cable Crossover'], label: 'Écarté (croisé à la poulie basse)', s: 3, r: [12, 15], muscles: ['Chest', 'Shoulders'] },
-      { e: 'Shoulder Press', alt: ['Military Press', 'Overhead Press', 'Dumbbell Shoulder Press', 'Seated Dumbbell Shoulder Press', 'Standing Dumbbell Shoulder Press', 'Dumbbell Overhead Press', 'Dumbbell Military Press'], s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : aux haltères, 18 kg par haltère pour démarrer.', departKg: 18 },
-      { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'] },
+      { e: 'Shoulder Press', alt: ['Smith Machine Overhead Press', 'Military Press', 'Overhead Press', 'Dumbbell Shoulder Press', 'Seated Dumbbell Shoulder Press', 'Standing Dumbbell Shoulder Press', 'Dumbbell Overhead Press', 'Dumbbell Military Press'], s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : aux haltères, 18 kg par haltère pour démarrer.', departKg: 18, depuis: '2026-11-17' },
+      { e: 'Machine Single Arm Seated Row', alt: ['Single Arm Machine Row', 'Machine One Arm Seated Row'], s: 3, r: [8, 10], unite: 'par bras', muscles: ['Lats', 'Biceps', 'Trapezius'] },
       { e: 'Triceps Pressdown', alt: ['Cable Triceps Pushdown'], s: 4, r: [10, 12] },
       { e: 'Chest Dip', alt: ['Dip', 'Dips', 'Triceps Dip', 'Bench Dip'], s: 3, r: [10, 15], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
       { e: 'Plank', alt: ['Front Plank'], s: 3, r: [60, 90], unit: 's', pdc: true, muscles: ['Abdominals'] }
@@ -903,6 +903,7 @@
   // Charge proposée pour un exercice, d'après la dernière séance où il a été fait
   function proposeCharge(ex, all) {
     const names = [ex.e, ...(ex.alt || [])];
+    if (ex.depuis) all = all.filter((x) => x.date >= new Date(ex.depuis + 'T00:00:00'));
     const S = all.find((x) => x.exos.some((y) => names.includes(y.e)));
     const unit = ex.unit || 'reps';
     if (ex.pdc) {
@@ -988,7 +989,7 @@
     const acts = DATA.acts.filter((a) => a.cat === 'muscu').sort((x, y) => y.date - x.date);
     const seen = new Set(), list = [];
     // Seules les séances enregistrées depuis Garmin sous le nom « Cockpit A/B/C/D » comptent
-    const identify = (name) => { const m = /cockpit\s*([abcd])\b/i.exec(name || ''); return m ? { id: m[1].toUpperCase(), how: 'nom' } : null; };
+    const identify = (name) => { const m = /cockpit\s*([abcd])\b/i.exec(name || '') || /\b([abcd])\s+cockpit/i.exec(name || ''); return m ? { id: m[1].toUpperCase(), how: 'nom' } : null; };
     acts.forEach((a) => { const S = byId.get(String(a.id)); seen.add(String(a.id)); const r = identify(a.name, S); list.push({ date: a.date, r, S, name: a.name }); });
     all.forEach((S) => { if (!seen.has(S.id)) list.push({ date: S.date, r: identify(S.name, S), S, name: S.name }); });
     list.sort((x, y) => y.date - x.date);
