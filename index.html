@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-17 · écarté poulie basse';
+  const APP_VERSION = '2026-11-18 · séances C et D';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -856,7 +856,7 @@
   // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
   const PROGRAMME = [
     { id: 'A', titre: 'Séance A · Dos, biceps, avant-bras', sous: 'Ton entraînement Garmin « Cockpit A »', exos: [
-      { e: 'Pull Up', alt: ['Pull-Up', 'Pullup', 'Chin Up', 'Chin-Up', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
+      { e: 'Pull Up', alt: ['Pull-Up', 'Pullup', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
       { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10] },
       { e: 'Seated Cable Row', alt: ['Machine Seated Row', 'Neutral Grip Seated Cable Row', 'V-Grip Seated Cable Row', 'Seated Cable Row Neutral Grip', 'Close Grip Seated Cable Row'], s: 4, r: [8, 10] },
       { e: 'Straight Arm Pulldown', alt: ['Straight-Arm Pulldown', 'Cable Straight Arm Pulldown', 'Rope Straight Arm Pulldown'], s: 3, r: [10, 12] },
@@ -875,6 +875,27 @@
       { e: 'Chest Dip', alt: ['Dip', 'Dips', 'Triceps Dip', 'Bench Dip'], s: 3, r: [10, 15], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
       { e: 'Plank', alt: ['Front Plank'], s: 3, r: [60, 90], unit: 's', pdc: true, muscles: ['Abdominals'] }
     ] }
+,
+    { id: 'C', titre: 'Séance C · Dos, épaules, trapèzes', sous: 'Tirage + épaules · haltères, barre, poulies', exos: [
+      { e: 'Bent Over Row', alt: ['Barbell Row', 'Bent Over Barbell Row', 'Barbell Bent Over Row'], label: 'Rowing à la barre (buste penché)', s: 4, r: [8, 10], muscles: ['Lats', 'Biceps', 'Lower Back', 'Trapezius'], depart: 'Nouveau : commence vers 40 kg, dos plat, barre tirée vers le nombril.', departKg: 40 },
+      { e: 'Wide Grip Lat Pulldown', alt: ['Wide Grip Cable Lat Pulldown', 'Wide-Grip Lat Pulldown'], label: 'Tirage vertical prise large', s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'], depart: 'Nouveau : commence vers 59 kg (tu fais 66 kg en prise neutre).', departKg: 59 },
+      { e: 'One Arm Dumbbell Row', alt: ['Single Arm Dumbbell Row', 'One-Arm Dumbbell Row', 'Dumbbell Row', 'Bent Over Dumbbell Row'], label: 'Rowing haltère un bras', s: 3, r: [10, 12], inc: 2, unite: 'par bras', muscles: ['Lats', 'Biceps', 'Trapezius'], depart: 'Nouveau : genou et main sur le banc, commence vers 22 kg.', departKg: 22 },
+      { e: 'Face Pull', alt: ['Cable Face Pull', 'Rope Face Pull'], label: 'Face pull à la corde', s: 3, r: [12, 15], muscles: ['Shoulders', 'Trapezius'], depart: 'Nouveau : poulie à hauteur du visage, coudes hauts, commence vers 18 kg.', departKg: 18 },
+      { e: 'Lateral Raise', alt: ['Dumbbell Lateral Raise', 'Standing Dumbbell Lateral Raise'], label: 'Élévation latérale', s: 3, r: [12, 15], inc: 2, unite: 'par haltère', muscles: ['Shoulders'], depart: 'Nouveau : commence léger, vers 8 kg par haltère.', departKg: 8 },
+      { e: 'Dumbbell Shrug', alt: ['Shrug', 'Barbell Shrug'], label: 'Shrug aux haltères', s: 3, r: [12, 15], inc: 2, unite: 'par haltère', muscles: ['Trapezius'], depart: 'Nouveau : épaules vers les oreilles, sans rouler, commence vers 24 kg par haltère.', departKg: 24 },
+      { e: 'Hammer Curl', alt: ['Dumbbell Hammer Curl'], label: 'Curl marteau', s: 3, r: [10, 12], inc: 2, unite: 'par haltère', muscles: ['Biceps', 'Forearms'], depart: 'Nouveau : commence vers 14 kg par haltère.', departKg: 14 },
+      { e: 'Side Plank', alt: ['Side Plank Hold'], label: 'Gainage latéral (par côté)', s: 3, r: [30, 60], unit: 's', pdc: true, muscles: ['Abdominals'] }
+    ] },
+    { id: 'D', titre: 'Séance D · Pecs, épaules, bras', sous: 'Poussée + bras · haltères, banc, barre de traction', exos: [
+      { e: 'Dumbbell Bench Press', alt: ['Flat Dumbbell Bench Press'], label: 'Développé couché aux haltères', s: 4, r: [8, 10], inc: 2, unite: 'par haltère' },
+      { e: 'Incline Dumbbell Bench Press', alt: ['Incline Dumbbell Press'], label: 'Développé incliné aux haltères', s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Chest', 'Triceps', 'Shoulders'], depart: 'Nouveau : banc à 30°, commence vers 20 kg par haltère.', departKg: 20 },
+      { e: 'Push Up', alt: ['Push-Up', 'Pushup'], label: 'Pompes', s: 3, r: [12, 20], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
+      { e: 'Arnold Press', alt: ['Dumbbell Arnold Press', 'Seated Arnold Press'], label: 'Développé Arnold', s: 3, r: [10, 12], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : assis, commence vers 14 kg par haltère.', departKg: 14 },
+      { e: 'Chin Up', alt: ['Chin-Up', 'Chinup'], label: 'Traction supination', s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
+      { e: 'Skull Crusher', alt: ['EZ Bar Skull Crusher', 'Lying Triceps Extension'], label: 'Barre au front', s: 3, r: [10, 12] },
+      { e: 'Dumbbell Biceps Curl', alt: ['Dumbbell Curl', 'Standing Dumbbell Biceps Curl', 'Alternating Dumbbell Curl'], label: 'Curl biceps aux haltères', s: 3, r: [10, 12], inc: 2, unite: 'par haltère', muscles: ['Biceps'], depart: 'Nouveau : commence vers 12 kg par haltère.', departKg: 12 },
+      { e: 'Crunch', alt: ['Crunches', 'Abdominal Crunch'], label: 'Crunch', s: 3, r: [15, 25], pdc: true, muscles: ['Abdominals'] }
+    ] }
   ];
   EXO_FR['Plank'] = EXO_FR['Plank'] || 'Planche';
 
@@ -885,7 +906,7 @@
     const unit = ex.unit || 'reps';
     if (ex.pdc) {
       const last = S ? S.exos.find((y) => names.includes(y.e)) : null;
-      return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : `Nouveau : au poids du corps, fais le maximum de répétitions propres (objectif ${ex.r[0]}–${ex.r[1]}). Choisis « ${exoFr(ex.e)} » sur ta montre.` };
+      return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}${ex.unit === 's' ? ' s' : ''}`, why: last ? `Dernière fois : ${Math.round(last.reps / last.sets)} ${unit} en moyenne (${S.date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' })}).` : (ex.unit === 's' ? `Nouveau : tiens ${ex.r[0]} à ${ex.r[1]} s, corps bien aligné.` : `Nouveau : au poids du corps, fais le maximum de répétitions propres (objectif ${ex.r[0]}–${ex.r[1]}).`) };
     }
     if (!S && ex.depart) return { kg: ex.departKg ?? null, reps: `${ex.r[0]}–${ex.r[1]}`, why: ex.depart };
     if (!S) return { kg: null, reps: `${ex.r[0]}–${ex.r[1]}`, why: `Nouveau : choisis une charge qui permet ${ex.r[1]} répétitions propres (pour les avant-bras, commence léger, barre seule ou 15–20 kg).` };
@@ -909,12 +930,16 @@
   }
 
   // Projection : séries par muscle et ratio si le programme est suivi 1 fois par semaine
+  let PROG_FREQ = 2;
   function programmeProjection() {
     const EX = DATA.exercises || {};
     const fake = PROGRAMME.map((P) => ({ exos: P.exos.map((x) => ({ e: x.e, sets: x.s })) }));
     PROGRAMME.forEach((P) => P.exos.forEach((x) => { if (x.muscles && !EX[x.e]) EX[x.e] = x.muscles; }));
     DATA.exercises = EX;
-    return { L: muscleLoad(fake), PP: pushPull(fake) };
+    const L = muscleLoad(fake), k = PROG_FREQ / PROGRAMME.length;
+    Object.values(L).forEach((v) => { v.p *= k; v.s *= k; });
+    const PP = pushPull(fake);
+    return { L, PP };
   }
 
   function viewProgramme(all) {
@@ -930,12 +955,15 @@
     const cur = pushPull(all.filter((S) => S.date > new Date(Date.now() - 28 * DAY))), curRatio = cur.pull ? cur.push / cur.pull : null;
     parts.push(`<section class="card">
       <div class="row"><span class="label">Avec ce programme</span><span class="small">séries / semaine</span></div>
+      <div class="small" style="margin-top:8px">Rotation A → B → C → D. Séances par semaine :</div>
+      <div class="seg" role="group" aria-label="Séances par semaine" style="margin-top:6px">${[2, 3, 4].map((n) => `<button data-freq="${n}" aria-pressed="${PROG_FREQ === n}">${n} / semaine</button>`).join('')}</div>
       <div class="grid2" style="margin-top:10px">
         <div style="background:#1F1A28;border-radius:12px;padding:10px"><div class="small">Ratio actuel (4 sem.)</div><div class="num" style="font-size:22px;color:#FFB27A">${curRatio ? fr1(curRatio) + ' : 1' : '–'}</div><div class="small">poussée : tirage</div></div>
-        <div style="background:#12261A;border-radius:12px;padding:10px"><div class="small">Ratio du programme</div><div class="num" style="font-size:22px;color:#7EE2A8">${ratio ? fr1(ratio) + ' : 1' : '–'}</div><div class="small">${fr0(PP.push)} séries poussée / ${fr0(PP.pull)} tirage</div></div>
+        <div style="background:#12261A;border-radius:12px;padding:10px"><div class="small">Ratio du programme</div><div class="num" style="font-size:22px;color:#7EE2A8">${ratio ? fr1(ratio) + ' : 1' : '–'}</div><div class="small">${fr0(PP.push)} séries poussée / ${fr0(PP.pull)} tirage sur le cycle</div></div>
       </div>
       <div class="stack" style="gap:9px;margin-top:14px">${rows}</div>
       <div class="row small" style="padding:6px 30px 0 114px"><span>0</span><span style="color:#8FBF5A">zone utile 10–20</span><span>25</span></div>
+      ${(() => { const over = MUSCLE_ORDER.filter((m) => L[m].p + L[m].s / 2 > 20); return over.length ? `<p class="small" style="margin:10px 0 0;color:var(--warn-ic)">Au-delà de 20 séries par semaine pour ${over.join(', ').toLowerCase()} : à ce rythme, retire une série sur les exercices concernés ou garde un jour de repos entre deux séances.</p>` : ''; })()}
       <p class="small" style="margin:10px 0 0">Muscle principal = 1 série, muscle secondaire = ½. Trapèzes, avant-bras et abdos sont travaillés en complément, sans viser la zone.</p>
     </section>`);
     PROGRAMME.forEach((P) => {
@@ -946,7 +974,7 @@
       </section>`);
     });
     parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
-      <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#E3E8D8">Une séance A et une séance B par semaine, avec 2 jours d'écart. Évite de les placer la veille d'une séance de qualité Garmin Coach. Repos 1 min 30 à 2 min entre les séries des gros exercices. Les charges se recalculent après chaque séance enregistrée.</p>
+      <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#E3E8D8">Enchaîne les séances dans l'ordre A → B → C → D, puis recommence, avec au moins un jour d'écart entre deux séances. Évite de les placer la veille d'une séance de qualité Garmin Coach. Repos 1 min 30 à 2 min entre les séries des gros exercices. Les charges se recalculent après chaque séance enregistrée.</p>
       <p class="small" style="margin:8px 0 0">Suggestions calculées sur tes séances, pas un avis de coach ou de médecin.</p></section>`);
     return parts.join('');
   }
@@ -1096,6 +1124,7 @@
     v.innerHTML = ({ cockpit: viewCockpit, entrainement: viewEntrainement, courses: viewCourses, muscu: viewMuscu })[TAB](now);
     if (DATA.generated_at) v.insertAdjacentHTML('beforeend', `<p class="small" style="text-align:center;margin:8px 0 0">Données du ${esc(new Date(DATA.generated_at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))}</p>`);
     v.querySelectorAll('[data-filter]').forEach((b) => b.addEventListener('click', () => { FILTER = b.dataset.filter; render(); }));
+    v.querySelectorAll('[data-freq]').forEach((b) => b.addEventListener('click', () => { PROG_FREQ = +b.dataset.freq; const y = window.scrollY; render(); window.scrollTo(0, y); }));
     v.querySelectorAll('[data-muview]').forEach((b) => b.addEventListener('click', () => { MU_VIEW = b.dataset.muview; render(); window.scrollTo(0, 0); }));
     v.querySelectorAll('[data-race]').forEach((b) => b.addEventListener('click', () => { CO_RACE = b.dataset.race; render(); }));
     v.querySelectorAll('[data-mus]').forEach((b) => b.addEventListener('click', () => { MU_SESSION = b.dataset.mus; const y = window.scrollY; render(); window.scrollTo(0, y); }));
