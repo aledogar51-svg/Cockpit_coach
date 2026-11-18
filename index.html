@@ -201,7 +201,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · alias barre au front';
+  const APP_VERSION = '2026-11-18 · roulement A B C D';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -966,10 +966,11 @@
       ${(() => { const over = MUSCLE_ORDER.filter((m) => L[m].p + L[m].s / 2 > 20); return over.length ? `<p class="small" style="margin:10px 0 0;color:var(--warn-ic)">Au-delà de 20 séries par semaine pour ${over.join(', ').toLowerCase()} : à ce rythme, retire une série sur les exercices concernés ou garde un jour de repos entre deux séances.</p>` : ''; })()}
       <p class="small" style="margin:10px 0 0">Muscle principal = 1 série, muscle secondaire = ½. Trapèzes, avant-bras et abdos sont travaillés en complément, sans viser la zone.</p>
     </section>`);
+    const NEXT = rotationInfo(all).next;
     PROGRAMME.forEach((P) => {
       const total = sum(P.exos, (x) => x.s);
       parts.push(`<section class="card">
-        <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span></div>
+        <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><div style="text-align:right"><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span>${P.id === NEXT ? '<div style="font-size:10px;font-weight:700;color:#14101C;background:var(--muscu);border-radius:8px;padding:2px 6px;margin-top:2px">prochaine</div>' : ''}</div></div>
         ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(x.label || exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
       </section>`);
     });
@@ -977,6 +978,46 @@
       <p style="margin:8px 0 0;font-size:13px;line-height:1.5;color:#E3E8D8">Enchaîne les séances dans l'ordre A → B → C → D, puis recommence, avec au moins un jour d'écart entre deux séances. Évite de les placer la veille d'une séance de qualité Garmin Coach. Repos 1 min 30 à 2 min entre les séries des gros exercices. Les charges se recalculent après chaque séance enregistrée.</p>
       <p class="small" style="margin:8px 0 0">Suggestions calculées sur tes séances, pas un avis de coach ou de médecin.</p></section>`);
     return parts.join('');
+  }
+
+
+  // Roulement A → B → C → D : reconnaît chaque séance (nom « Cockpit X » ou exercices du programme)
+  function rotationInfo(all) {
+    const byId = new Map(all.map((S) => [S.id, S]));
+    const acts = DATA.acts.filter((a) => a.cat === 'muscu').sort((x, y) => y.date - x.date);
+    const seen = new Set(), list = [];
+    const identify = (name, S) => {
+      const m = /cockpit\s*([abcd])\b|s[ée]ance\s*([abcd])\b/i.exec(name || '');
+      if (m) return { id: (m[1] || m[2]).toUpperCase(), how: 'nom' };
+      if (!S) return null;
+      let best = null;
+      PROGRAMME.forEach((P) => {
+        const hit = P.exos.filter((x) => S.exos.some((y) => [x.e, ...(x.alt || [])].includes(y.e))).length;
+        const sc = hit / P.exos.length;
+        if (hit >= 3 && sc >= 0.5 && (!best || sc > best.sc)) best = { id: P.id, sc };
+      });
+      return best ? { id: best.id, how: 'exos' } : null;
+    };
+    acts.forEach((a) => { const S = byId.get(String(a.id)); seen.add(String(a.id)); const r = identify(a.name, S); list.push({ date: a.date, r }); });
+    all.forEach((S) => { if (!seen.has(S.id)) list.push({ date: S.date, r: identify(S.name, S) }); });
+    list.sort((x, y) => y.date - x.date);
+    const lastOf = {}; list.forEach((x) => { if (x.r && !lastOf[x.r.id]) lastOf[x.r.id] = x.date; });
+    const last = list.find((x) => x.r);
+    const ids = PROGRAMME.map((P) => P.id);
+    const next = last ? ids[(ids.indexOf(last.r.id) + 1) % ids.length] : ids[0];
+    return { lastOf, last, next };
+  }
+  function rotationCard(all, now) {
+    const R = rotationInfo(all), dd = (d) => d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+    const P = PROGRAMME.find((x) => x.id === R.next);
+    const ago = R.last ? Math.floor((startOfDay(now) - startOfDay(R.last.date)) / DAY) : null;
+    const agoTxt = ago == null ? '' : ago === 0 ? "aujourd'hui" : ago === 1 ? 'hier' : `il y a ${ago} j`;
+    return `<section class="card">
+      <div class="row"><span class="label">Mon roulement</span><span class="small">A → B → C → D</span></div>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px">${PROGRAMME.map((x) => { const isN = x.id === R.next, isL = R.last && R.last.r.id === x.id; return `<div style="border-radius:12px;padding:10px 6px;text-align:center;background:${isN ? 'var(--muscu)' : '#1F2328'};color:${isN ? '#14101C' : 'inherit'};${isL ? 'outline:2px solid var(--muscu);outline-offset:-2px' : ''}"><div class="num" style="font-size:22px;font-weight:700">${x.id}</div><div style="font-size:10px;margin-top:2px;${isN ? 'font-weight:700' : 'color:var(--muted)'}">${isN ? 'à faire' : R.lastOf[x.id] ? R.lastOf[x.id].toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) : 'pas encore'}</div></div>`; }).join('')}</div>
+      <p style="margin:12px 0 0;font-size:14px;line-height:1.45">${R.last ? `Dernière : <b>séance ${R.last.r.id}</b> (${dd(R.last.date)}, ${agoTxt}).` : 'Aucune séance du programme reconnue pour l’instant.'} Prochaine : <b style="color:var(--muscu)">séance ${R.next}</b>${P ? ` · ${esc(P.titre.replace(/^Séance [A-D] · /, ''))}` : ''}.${ago === 0 ? ' Laisse au moins un jour de repos avant.' : ''}</p>
+      <p class="small" style="margin:6px 0 0">Reconnue par le nom de l'activité (« Cockpit A »…) ou par ses exercices.</p>
+    </section>`;
   }
 
   let MU_VIEW = 'suivi';
@@ -998,6 +1039,8 @@
       <div class="tile"><span class="t">Séries</span><span class="num v">${fr0(sum(week, (S) => S.sets))}</span><span class="t">cette semaine</span></div>
       <div class="tile"><span class="t">Volume soulevé</span><span class="num v">${fr1(sum(week, (S) => S.vol) / 1000)} t</span><span class="t">charge × reps</span></div>
     </section>${pending.length ? `<p class="small" style="margin:-4px 0 0;color:var(--warn-ic)">⏳ Détail en attente pour ${pending.map((a) => `« ${esc(a.name.replace(/^Entraînement aux poids\s*[-/]?\s*/i, '') || 'séance')} » (${a.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit' })})`).join(', ')} : arrive avec la synchro de ${nextSync}. Séries et volume ne la comptent pas encore.</p>` : ''}`);
+
+    parts.push(rotationCard(all, now));
 
     // 2. Équilibre musculaire (4 semaines)
     const L = muscleLoad(last28), weeksN = 4, max = 25;
