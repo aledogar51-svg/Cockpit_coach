@@ -879,7 +879,7 @@
 ,
     { id: 'C', titre: 'Séance C · Dos, épaules, trapèzes', sous: 'Tirage + épaules · haltères, barre, poulies', exos: [
       { e: 'Bent Over Row', alt: ['Barbell Row', 'Bent Over Barbell Row', 'Barbell Bent Over Row'], label: 'Rowing à la barre (buste penché)', s: 4, r: [8, 10], muscles: ['Lats', 'Biceps', 'Lower Back', 'Trapezius'], depart: 'Nouveau : commence vers 40 kg, dos plat, barre tirée vers le nombril.', departKg: 40 },
-      { e: 'Wide Grip Lat Pulldown', alt: ['Wide Grip Cable Lat Pulldown', 'Wide-Grip Lat Pulldown'], label: 'Tirage vertical prise large', s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'], depart: 'Nouveau : commence vers 59 kg (tu fais 66 kg en prise neutre).', departKg: 59 },
+      { e: 'Wide Grip Lat Pulldown', alt: ['Wide Grip Cable Lat Pulldown', 'Wide-Grip Lat Pulldown', 'Lat Pulldown'], label: 'Tirage vertical prise large', s: 3, r: [8, 10], muscles: ['Lats', 'Biceps'], depart: 'Nouveau : commence vers 59 kg (tu fais 66 kg en prise neutre).', departKg: 59 },
       { e: 'One Arm Dumbbell Row', alt: ['Single Arm Dumbbell Row', 'One-Arm Dumbbell Row', 'Dumbbell Row', 'Bent Over Dumbbell Row'], label: 'Rowing haltère un bras', s: 3, r: [10, 12], inc: 2, unite: 'par bras', muscles: ['Lats', 'Biceps', 'Trapezius'], depart: 'Nouveau : genou et main sur le banc, commence vers 22 kg.', departKg: 22 },
       { e: 'Face Pull', alt: ['Cable Face Pull', 'Rope Face Pull'], label: 'Face pull à la corde', s: 3, r: [12, 15], muscles: ['Shoulders', 'Trapezius'], depart: 'Nouveau : poulie à hauteur du visage, coudes hauts, commence vers 18 kg.', departKg: 18 },
       { e: 'Lateral Raise', alt: ['Dumbbell Lateral Raise', 'Standing Dumbbell Lateral Raise'], label: 'Élévation latérale', s: 3, r: [12, 15], inc: 2, unite: 'par haltère', muscles: ['Shoulders'], depart: 'Nouveau : commence léger, vers 8 kg par haltère.', departKg: 8 },
@@ -901,8 +901,19 @@
   EXO_FR['Plank'] = EXO_FR['Plank'] || 'Planche';
 
   // Charge proposée pour un exercice, d'après la dernière séance où il a été fait
-  function proposeCharge(ex, all) {
+  // Type de séance (A/B/C/D) d'après son nom « Cockpit X » ou « Séance X cockpit »
+  const cockpitTypeOf = (name) => { const m = /cockpit\s*([abcd])\b/i.exec(name || '') || /\b([abcd])\s+cockpit/i.exec(name || ''); return m ? m[1].toUpperCase() : null; };
+  // Séances à utiliser pour un exercice : celles du même type si l'exercice y a déjà été fait
+  // (ex. « Lat Pulldown » = tirage prise neutre en A, prise large en C), sinon toutes
+  function sessionsFor(ex, all, pid) {
     const names = [ex.e, ...(ex.alt || [])];
+    if (!pid) return all;
+    const same = all.filter((x) => cockpitTypeOf(x.name) === pid);
+    return same.some((x) => x.exos.some((y) => names.includes(y.e))) ? same : all;
+  }
+  function proposeCharge(ex, all, pid) {
+    const names = [ex.e, ...(ex.alt || [])];
+    all = sessionsFor(ex, all, pid);
     if (ex.depuis) all = all.filter((x) => x.date >= new Date(ex.depuis + 'T00:00:00'));
     const S = all.find((x) => x.exos.some((y) => names.includes(y.e)));
     const unit = ex.unit || 'reps';
@@ -973,7 +984,7 @@
       const total = sum(P.exos, (x) => x.s);
       parts.push(`<section class="card">
         <div class="row" style="align-items:flex-start"><div><div style="font-size:16px;font-weight:700">${esc(P.titre)}</div><div class="small" style="margin-top:2px">${esc(P.sous)} · ${total} séries · environ ${Math.round(total * 3.2)} min</div></div><div style="text-align:right"><span class="num" style="font-size:22px;color:var(--muscu)">${P.id}</span>${P.id === NEXT ? '<div style="font-size:10px;font-weight:700;color:#14101C;background:var(--muscu);border-radius:8px;padding:2px 6px;margin-top:2px">prochaine</div>' : ''}</div></div>
-        ${P.exos.map((x) => { const pr = proposeCharge(x, all); const names = [x.e, ...(x.alt || [])]; const lastS = all.find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(x.label || exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
+        ${P.exos.map((x) => { const pr = proposeCharge(x, all, P.id); const names = [x.e, ...(x.alt || [])]; const lastS = sessionsFor(x, all, P.id).find((S) => S.exos.some((y) => names.includes(y.e))); const shown = lastS ? lastS.exos.find((y) => names.includes(y.e)).e : x.e; return `<div class="act" style="align-items:flex-start"><div class="main"><div class="name" style="white-space:normal">${esc(x.label || exoFr(shown))}</div><div class="meta" style="color:var(--muted);font-size:11px;margin-top:3px;line-height:1.35">${x.echauf ? `<b style="color:var(--soft)">${esc(x.echauf)}</b> ` : ''}${esc(pr.why)}</div></div><div style="text-align:right;flex-shrink:0"><div class="num" style="font-size:16px">${x.s} × ${esc(pr.reps)}</div><div class="num" style="font-size:14px;color:${pr.up ? '#7EE2A8' : 'var(--soft)'}">${pr.kg != null ? fr1(pr.kg) + ' kg' + (x.unite ? ' ' + x.unite : '') + (pr.up ? ' ↑' : '') : (x.pdc ? 'PDC' : 'à tester')}</div></div></div>`; }).join('')}
       </section>`);
     });
     parts.push(`<section class="card tips"><div style="font-size:13px;font-weight:700;color:var(--accent)">Comment l'utiliser</div>
