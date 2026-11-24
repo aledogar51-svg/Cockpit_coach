@@ -202,7 +202,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-18 · tirage bras tendus';
+  const APP_VERSION = '2026-11-24 · tractions prise large';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -777,7 +777,7 @@
     'Flye': 'Écarté', 'Fly': 'Écarté', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
     'Shoulder Press': 'Développé militaire', 'Overhead Press': 'Développé militaire', 'Military Press': 'Développé militaire', 'Dumbbell Shoulder Press': 'Développé militaire aux haltères', 'Front Plank': 'Planche',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
-    'Skull Crusher': 'Barre au front', 'Lying Triceps Extension': 'Extension triceps allongé', 'Lying EZ-Bar Triceps Extension': 'Extension triceps allongé à la barre EZ', 'Dumbbell Lying Triceps Extension': 'Extension triceps allongé aux haltères', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
+    'Wide Pull-Up': 'Traction prise large', 'Skull Crusher': 'Barre au front', 'Lying Triceps Extension': 'Extension triceps allongé', 'Lying EZ-Bar Triceps Extension': 'Extension triceps allongé à la barre EZ', 'Dumbbell Lying Triceps Extension': 'Extension triceps allongé aux haltères', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
@@ -857,7 +857,7 @@
   // avec uniquement des exercices déjà pratiqués. Charges calculées sur la dernière fois où l'exercice a été fait.
   const PROGRAMME = [
     { id: 'A', titre: 'Séance A · Dos, biceps, avant-bras', sous: 'Ton entraînement Garmin « Cockpit A »', exos: [
-      { e: 'Pull Up', alt: ['Pull-Up', 'Pullup', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
+      { e: 'Pull Up', alt: ['Wide Pull-Up', 'Wide Pull Up', 'Wide Grip Pull-Up', 'Wide-Grip Pull-Up', 'Pull-Up', 'Pullup', 'Wide Grip Pull Up', 'Neutral Grip Pull Up'], s: 3, r: [6, 10], pdc: true, muscles: ['Lats', 'Biceps'] },
       { e: 'Lat Pulldown', alt: ['Close Grip Cable Lat Pulldown', 'Neutral-Grip Lat Pulldown', 'Wide Grip Lat Pulldown', 'Close Grip Lat Pulldown'], s: 3, r: [8, 10] },
       { e: 'Seated Cable Row', alt: ['Machine Seated Row', 'Neutral Grip Seated Cable Row', 'V-Grip Seated Cable Row', 'Seated Cable Row Neutral Grip', 'Close Grip Seated Cable Row'], s: 4, r: [8, 10] },
       { e: 'Straight Arm Pulldown', alt: ['Reverse Grip Barbell Row', 'Straight-Arm Pulldown', 'Cable Straight Arm Pulldown', 'Rope Straight Arm Pulldown'], label: 'Tirage bras tendus', s: 3, r: [10, 12] },
