@@ -202,7 +202,7 @@
 <script>
 (() => {
   'use strict';
-  const APP_VERSION = '2026-11-24 · tractions prise large';
+  const APP_VERSION = '2026-11-27 · dips séance B';
   const LS_DATA = 'cockpit.data.v1', LS_CFG = 'cockpit.cfg.v2', LS_GOAL = 'cockpit.goal.v1';
   const RUN_TYPES = ['Run', 'TrailRun', 'VirtualRun'];
   const CAT = {
@@ -777,7 +777,7 @@
     'Flye': 'Écarté', 'Fly': 'Écarté', 'Cable Cross Extension': 'Extension croisée à la poulie', 'Cable Crossover Extension': 'Extension croisée à la poulie', 'Cross Cable Extension': 'Extension croisée à la poulie', 'Hanging Knee Tuck': 'Genou poitrine en suspension', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Seated Cable Row': 'Rowing assis à la poulie basse',
     'Shoulder Press': 'Développé militaire', 'Overhead Press': 'Développé militaire', 'Military Press': 'Développé militaire', 'Dumbbell Shoulder Press': 'Développé militaire aux haltères', 'Front Plank': 'Planche',
     'Barbell Wrist Curl': 'Curl poignets à la barre', 'Dumbbell Wrist Curl': 'Curl poignets aux haltères', 'Wrist Curl': 'Curl poignets', 'Seated Barbell Wrist Curl': 'Curl poignets assis à la barre', 'Machine Seated Row': 'Rowing assis à la machine',
-    'Wide Pull-Up': 'Traction prise large', 'Skull Crusher': 'Barre au front', 'Lying Triceps Extension': 'Extension triceps allongé', 'Lying EZ-Bar Triceps Extension': 'Extension triceps allongé à la barre EZ', 'Dumbbell Lying Triceps Extension': 'Extension triceps allongé aux haltères', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
+    'Wide Pull-Up': 'Traction prise large', 'Body Weight Dip': 'Dips au poids du corps', 'Skull Crusher': 'Barre au front', 'Lying Triceps Extension': 'Extension triceps allongé', 'Lying EZ-Bar Triceps Extension': 'Extension triceps allongé à la barre EZ', 'Dumbbell Lying Triceps Extension': 'Extension triceps allongé aux haltères', 'Hanging Knee Raise': 'Genou poitrine en suspension', 'Plank': 'Planche', 'Crunch': 'Crunch'
   };
   const exoFr = (e) => EXO_FR[e] || e;
   const MUSCLE_FR = { Chest: 'Pectoraux', Shoulders: 'Épaules', Triceps: 'Triceps', Biceps: 'Biceps', Lats: 'Dos', 'Upper Back': 'Dos', 'Lower Back': 'Dos', Back: 'Dos', Trapezius: 'Trapèzes',
@@ -873,7 +873,7 @@
       { e: 'Shoulder Press', alt: ['Smith Machine Overhead Press', 'Military Press', 'Overhead Press', 'Dumbbell Shoulder Press', 'Seated Dumbbell Shoulder Press', 'Standing Dumbbell Shoulder Press', 'Dumbbell Overhead Press', 'Dumbbell Military Press'], s: 3, r: [8, 10], inc: 2, unite: 'par haltère', muscles: ['Shoulders', 'Triceps'], depart: 'Nouveau : aux haltères, 18 kg par haltère pour démarrer.', departKg: 18, depuis: '2026-11-17' },
       { e: 'Machine Single Arm Seated Row', alt: ['Single Arm Machine Row', 'Machine One Arm Seated Row'], s: 3, r: [8, 10], unite: 'par bras', muscles: ['Lats', 'Biceps', 'Trapezius'] },
       { e: 'Triceps Pressdown', alt: ['Cable Triceps Pushdown'], s: 4, r: [10, 12] },
-      { e: 'Chest Dip', alt: ['Dip', 'Dips', 'Triceps Dip', 'Bench Dip'], s: 3, r: [10, 15], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
+      { e: 'Chest Dip', alt: ['Body Weight Dip', 'Bodyweight Dip', 'Body Weight Dips', 'Parallel Bar Dip', 'Dip', 'Dips', 'Triceps Dip', 'Bench Dip'], s: 3, r: [10, 15], pdc: true, muscles: ['Chest', 'Triceps', 'Shoulders'] },
       { e: 'Plank', alt: ['Front Plank'], s: 3, r: [60, 90], unit: 's', pdc: true, muscles: ['Abdominals'] }
     ] }
 ,
